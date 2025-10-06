@@ -185,7 +185,7 @@ export function getProducts(filters: ProductFilters = {}) {
   let filteredProducts = [...mockProducts]
 
   // Apply category filter
-  if (filters.category) {
+  if (filters.category && filters.category != "all") {
     filteredProducts = filteredProducts.filter((p) => p.category_id === filters.category)
   }
 

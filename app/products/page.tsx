@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
@@ -35,6 +35,7 @@ export default function ProductsPage() {
   }, [searchParams])
 
   useEffect(() => {
+    // if (products.length != 0) return;
     fetchProducts(true)
   }, [filters])
 
@@ -92,9 +93,9 @@ export default function ProductsPage() {
     }
   }
 
-  const handleFiltersChange = (newFilters: Record<string, string>) => {
+  const handleFiltersChange = useCallback((newFilters: Record<string, string>) => {
     setFilters(newFilters)
-  }
+  }, [])
 
   const loadMore = () => {
     if (pagination.page < pagination.totalPages) {
