@@ -3,7 +3,7 @@
 
 ---
 
-## 1. Introduction  
+## 1. Introduction   
 
 ### 1.1 Purpose  
 The purpose of this document is to describe the functional and non-functional requirements of the Online Pet Accessories Platform. It will serve as a reference for developers, testers, and stakeholders to ensure the system meets the business goals of offering a reliable, scalable, and user-friendly e-commerce platform for pet accessories.  
