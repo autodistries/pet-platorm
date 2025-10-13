@@ -310,17 +310,4 @@ GET /api/orders/{orderId}/status
 * CI/CD pipeline for automated deployment.
 * Modular services for future feature extensions.
 
----
-
-## 8. Appendices
-
-* Appendix A: Example API documentation
-* Appendix B: Data models and DB schema draft
-
----
-
-## 9. Index
-
-Glossary of terms used in this document.
-
 
