@@ -177,9 +177,3 @@ The platform will cover the following areas:
 
 ---
 
-## 9. Approval and Sign-off
-- **Project Sponsor**: [Name]
-- **Executive Management**: [Name]
-- **IT Department**: [Name]
-- **Marketing Lead**: [Name]
-- **Logistics Lead**: [Name]
