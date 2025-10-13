@@ -81,7 +81,7 @@ Verification will be part of the CI/CD workflow to ensure continuous quality ass
 ---
 
 ## 5. HOW it Will Be Validated  
-*(Validation Plan — Optional)*  
+*(Validation Plan)*  
 
 Validation ensures that the delivered system meets the **business needs** and **user expectations** defined in the BRD.  
 The process involves:  
