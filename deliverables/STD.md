@@ -209,14 +209,3 @@ gantt
 * **Performance tests**: JMeter
 * **CI/CD integration**: GitHub Actions with automated test reports
 
----
-
-## 13. Approval
-
-| Name              | Role                  | Signature | Date |
-| ----------------- | --------------------- | --------- | ---- |
-| [QA Lead]         | Quality Assurance     |           |      |
-| [Project Manager] | Project Oversight     |           |      |
-| [Product Owner]   | Acceptance Validation |           |      |
-
----
