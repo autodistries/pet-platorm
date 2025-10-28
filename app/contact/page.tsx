@@ -3,13 +3,12 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Header } from "@/components/header"
-import { Footer } from "@/components/footer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/hooks/use-toast"
 import { Mail, Phone, MapPin, Clock } from "lucide-react"
 
 export default function ContactPage() {
@@ -20,20 +19,48 @@ export default function ContactPage() {
     message: "",
   })
   const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
+  const { toast } = useToast()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
-    // Simulate form submission
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      })
 
-    setSuccess(true)
-    setLoading(false)
-    setFormData({ name: "", email: "", subject: "", message: "" })
+      const data = await response.json()
 
-    setTimeout(() => setSuccess(false), 3000)
+      if (!response.ok) {
+        toast({
+          title: "Erreur",
+          description: data.error || "Une erreur s'est produite",
+          variant: "destructive",
+        })
+        setLoading(false)
+        return
+      }
+
+      toast({
+        title: "Message envoyé !",
+        description: data.message || "Votre message a été envoyé avec succès. Nous vous répondrons dans les plus brefs délais.",
+      })
+
+      setFormData({ name: "", email: "", subject: "", message: "" })
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de se connecter au serveur",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -44,18 +71,16 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="min-h-screen">
-      <Header />
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-12">
             <h1 className="text-4xl font-bold mb-4">Contactez-nous</h1>
             <p className="text-xl text-muted-foreground">
               Notre équipe est là pour vous aider et répondre à toutes vos questions
             </p>
-          </div>
+        </div>
 
-          <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid lg:grid-cols-2 gap-8">
             <div className="space-y-6">
               <Card>
                 <CardHeader>
@@ -140,14 +165,6 @@ export default function ContactPage() {
                 <CardTitle>Envoyez-nous un message</CardTitle>
               </CardHeader>
               <CardContent>
-                {success && (
-                  <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-green-800">
-                      Votre message a été envoyé avec succès ! Nous vous répondrons dans les plus brefs délais.
-                    </p>
-                  </div>
-                )}
-
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -193,7 +210,5 @@ export default function ContactPage() {
           </div>
         </div>
       </div>
-      <Footer />
-    </div>
   )
 }

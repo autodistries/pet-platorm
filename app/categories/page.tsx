@@ -1,6 +1,4 @@
 import Link from "next/link"
-import { Header } from "@/components/header"
-import { Footer } from "@/components/footer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 const categories = [
@@ -50,9 +48,7 @@ const categories = [
 
 export default function CategoriesPage() {
   return (
-    <div className="min-h-screen">
-      <Header />
-      <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Nos Catégories</h1>
           <p className="text-xl text-muted-foreground">
@@ -100,7 +96,5 @@ export default function CategoriesPage() {
           </div>
         </div>
       </div>
-      <Footer />
-    </div>
-  )
-}
+    )
+  }

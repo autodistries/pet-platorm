@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
-import { Header } from "@/components/header"
-import { Footer } from "@/components/footer"
 import { ProductCard } from "@/components/product-card"
 import { ProductFilters } from "@/components/product-filters"
 import { Button } from "@/components/ui/button"
@@ -104,23 +102,20 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="min-h-screen">
-      <Header />
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-balance mb-2">Nos Produits</h1>
+        <p className="text-muted-foreground">Découvrez notre sélection d'accessoires premium pour vos compagnons</p>
+      </div>
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-balance mb-2">Nos Produits</h1>
-          <p className="text-muted-foreground">Découvrez notre sélection d'accessoires premium pour vos compagnons</p>
-        </div>
-
-        <div className="grid lg:grid-cols-4 gap-8">
-          {/* Filters Sidebar */}
-          <div className="lg:col-span-1">
+      <div className="grid lg:grid-cols-4 gap-8">
+        {/* Filters Sidebar */}
+        <div className="lg:col-span-1">
             <ProductFilters categories={categories} onFiltersChange={handleFiltersChange} initialFilters={filters} />
           </div>
 
-          {/* Products Grid */}
-          <div className="lg:col-span-3">
+        {/* Products Grid */}
+        <div className="lg:col-span-3">
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin" />
@@ -159,9 +154,6 @@ export default function ProductsPage() {
             )}
           </div>
         </div>
-      </main>
-
-      <Footer />
-    </div>
-  )
-}
+      </div>
+    )
+  }

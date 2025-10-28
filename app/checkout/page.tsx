@@ -5,8 +5,6 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/contexts/cart-context"
-import { Header } from "@/components/header"
-import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -96,23 +94,17 @@ export default function CheckoutPage() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen">
-        <Header />
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">Votre panier est vide</h1>
-            <Button onClick={() => router.push("/products")}>Continuer vos achats</Button>
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Votre panier est vide</h1>
+          <Button onClick={() => router.push("/products")}>Continuer vos achats</Button>
         </div>
-        <Footer />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen">
-      <Header />
-      <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">Finaliser votre commande</h1>
 
         <div className="grid lg:grid-cols-2 gap-8">
@@ -275,7 +267,5 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
-      <Footer />
-    </div>
-  )
-}
+    )
+  }

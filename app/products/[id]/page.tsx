@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
-import { Header } from "@/components/header"
-import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
@@ -48,9 +46,7 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen">
-        <Header />
-        <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8">
           <div className="animate-pulse">
             <div className="h-8 bg-muted rounded w-1/4 mb-8"></div>
             <div className="grid md:grid-cols-2 gap-8">
@@ -69,9 +65,7 @@ export default function ProductDetailPage() {
 
   if (!product) {
     return (
-      <div className="min-h-screen">
-        <Header />
-        <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8">
           <div className="text-center py-12">
             <h1 className="text-2xl font-bold mb-4">Produit non trouvé</h1>
             <Button asChild>
@@ -84,10 +78,7 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="min-h-screen">
-      <Header />
-
-      <main className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}
         <div className="mb-8">
           <Button variant="ghost" size="sm" asChild>
@@ -213,9 +204,6 @@ export default function ProductDetailPage() {
             </div>
           </div>
         </div>
-      </main>
-
-      <Footer />
-    </div>
-  )
-}
+      </div>
+    )
+  }

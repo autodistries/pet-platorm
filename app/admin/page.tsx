@@ -1,12 +1,15 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import StatsCards from "@/components/admin/stats-cards"
 import SalesChart from "@/components/admin/sales-chart"
 import OrdersTable from "@/components/admin/orders-table"
 import type { AdminStats, SalesData, TopProduct } from "@/lib/admin"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { Package, ShoppingCart, Mail, MessageSquare } from "lucide-react"
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null)
@@ -85,6 +88,34 @@ export default function AdminDashboard() {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Tableau de bord administrateur</h1>
+      </div>
+
+      {/* Navigation rapide */}
+      <div className="grid md:grid-cols-4 gap-4 mb-8">
+        <Link href="/admin/products">
+          <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2">
+            <Package className="h-6 w-6" />
+            <span>Produits</span>
+          </Button>
+        </Link>
+        <Link href="/admin/orders">
+          <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2">
+            <ShoppingCart className="h-6 w-6" />
+            <span>Commandes</span>
+          </Button>
+        </Link>
+        <Link href="/admin/messages">
+          <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2">
+            <MessageSquare className="h-6 w-6" />
+            <span>Messages</span>
+          </Button>
+        </Link>
+        <Link href="/admin/newsletter">
+          <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2">
+            <Mail className="h-6 w-6" />
+            <span>Newsletter</span>
+          </Button>
+        </Link>
       </div>
 
       <div className="space-y-8">

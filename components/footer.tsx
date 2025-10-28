@@ -1,9 +1,69 @@
+"use client"
+
 import Link from "next/link"
+import { useState } from "react"
 import { Heart, Mail, Phone, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { useToast } from "@/hooks/use-toast"
 
 export function Footer() {
+  const [email, setEmail] = useState("")
+  const [loading, setLoading] = useState(false)
+  const { toast } = useToast()
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!email || !email.includes("@")) {
+      toast({
+        title: "Veuillez entrer votre email",
+        description: "Une adresse email valide est requise pour vous abonner à notre newsletter",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const response = await fetch("/api/newsletter", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        toast({
+          title: "Erreur",
+          description: data.error || "Une erreur s'est produite",
+          variant: "destructive",
+        })
+        setLoading(false)
+        return
+      }
+
+      toast({
+        title: "Inscription réussie !",
+        description: data.message || "Merci de vous être abonné à notre newsletter",
+      })
+
+      setEmail("")
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de se connecter au serveur",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <footer className="bg-secondary/30 border-t">
       <div className="container mx-auto px-4 py-12">
@@ -66,10 +126,19 @@ export function Footer() {
           <div className="space-y-4">
             <h3 className="font-semibold">Newsletter</h3>
             <p className="text-sm text-muted-foreground">Recevez nos dernières offres et conseils pour vos animaux.</p>
-            <div className="flex gap-2">
-              <Input type="email" placeholder="Votre email" className="flex-1" />
-              <Button size="sm">S'abonner</Button>
-            </div>
+            <form onSubmit={handleSubscribe} className="flex gap-2">
+              <Input 
+                type="email" 
+                placeholder="Votre email" 
+                className="flex-1"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+              />
+              <Button size="sm" type="submit" disabled={loading}>
+                {loading ? "..." : "S'abonner"}
+              </Button>
+            </form>
           </div>
         </div>
 

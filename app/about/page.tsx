@@ -1,22 +1,18 @@
-import { Header } from "@/components/header"
-import { Footer } from "@/components/footer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Heart, Shield, Truck, Award } from "lucide-react"
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen">
-      <Header />
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-12">
             <h1 className="text-4xl font-bold mb-4">À propos de PetCare</h1>
             <p className="text-xl text-muted-foreground">
               Votre partenaire de confiance pour le bien-être de vos animaux de compagnie
             </p>
-          </div>
+        </div>
 
-          <div className="grid md:grid-cols-2 gap-8 mb-12">
+        <div className="grid md:grid-cols-2 gap-8 mb-12">
             <div>
               <h2 className="text-2xl font-semibold mb-4">Notre Mission</h2>
               <p className="text-muted-foreground mb-4">
@@ -98,7 +94,5 @@ export default function AboutPage() {
           </div>
         </div>
       </div>
-      <Footer />
-    </div>
   )
 }
