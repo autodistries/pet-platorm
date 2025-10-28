@@ -1,3 +1,5 @@
+import db from "@/lib/db"
+
 export interface AdminStats {
   total_orders: number
   total_revenue: number
@@ -93,67 +95,46 @@ export async function getTopProducts(): Promise<TopProduct[]> {
 }
 
 export async function getAllOrders(): Promise<any[]> {
-  // Mock orders data for admin view
-  return [
-    {
-      id: "ord_001",
-      customer_name: "Marie Dubois",
-      customer_email: "marie@example.com",
-      status: "pending",
-      total_amount: 89.97,
-      created_at: "2024-01-20T10:30:00Z",
-      items_count: 3,
-    },
-    {
-      id: "ord_002",
-      customer_name: "Pierre Martin",
-      customer_email: "pierre@example.com",
-      status: "confirmed",
-      total_amount: 156.5,
-      created_at: "2024-01-20T09:15:00Z",
-      items_count: 2,
-    },
-    {
-      id: "ord_003",
-      customer_name: "Sophie Laurent",
-      customer_email: "sophie@example.com",
-      status: "shipped",
-      total_amount: 234.99,
-      created_at: "2024-01-19T16:45:00Z",
-      items_count: 4,
-    },
-  ]
+  const result = await db.query(
+    `SELECT o.id, o.total_amount, o.status, o.created_at,
+            c.first_name || ' ' || c.last_name as customer_name,
+            c.email as customer_email,
+            COUNT(oi.id) as items_count
+     FROM orders o
+     LEFT JOIN customers c ON o.customer_id = c.id
+     LEFT JOIN order_items oi ON o.id = oi.order_id
+     GROUP BY o.id, c.first_name, c.last_name, c.email
+     ORDER BY o.created_at DESC
+     LIMIT 50`
+  )
+
+  return result.rows.map((row: any) => ({
+    id: row.id,
+    customer_name: row.customer_name || 'Utilisateur inconnu',
+    customer_email: row.customer_email || 'N/A',
+    status: row.status,
+    total_amount: parseFloat(row.total_amount),
+    created_at: row.created_at,
+    items_count: parseInt(row.items_count) || 0,
+  }))
 }
 
 export async function getAllProducts(): Promise<any[]> {
-  // Mock products data for admin view
-  return [
-    {
-      id: "prod_1",
-      name: "Collier en Cuir Premium",
-      price: 29.99,
-      stock: 45,
-      category: "Colliers",
-      status: "active",
-      created_at: "2024-01-01T00:00:00Z",
-    },
-    {
-      id: "prod_2",
-      name: "Jouet Interactif pour Chat",
-      price: 19.99,
-      stock: 2,
-      category: "Jouets",
-      status: "active",
-      created_at: "2024-01-02T00:00:00Z",
-    },
-    {
-      id: "prod_3",
-      name: "Lit Orthopédique pour Chien",
-      price: 89.99,
-      stock: 0,
-      category: "Couchage",
-      status: "out_of_stock",
-      created_at: "2024-01-03T00:00:00Z",
-    },
-  ]
+  const result = await db.query(
+    `SELECT p.id, p.name, p.price, p.stock_quantity as stock, 
+            c.name as category, p.is_active, p.created_at
+     FROM products p
+     LEFT JOIN categories c ON p.category_id = c.id
+     ORDER BY p.created_at DESC`
+  )
+
+  return result.rows.map((row: any) => ({
+    id: row.id,
+    name: row.name,
+    price: parseFloat(row.price),
+    stock: row.stock,
+    category: row.category || "Sans catégorie",
+    status: row.stock === 0 ? "out_of_stock" : (row.is_active ? "active" : "inactive"),
+    created_at: row.created_at,
+  }))
 }

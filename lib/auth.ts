@@ -56,6 +56,11 @@ export async function login(email: string, password: string) {
   // For now, we'll simulate a database lookup
   const user = await getUserByEmail(email)
 
+  console.log("=== LOGIN DEBUG ===")
+  console.log("Email:", email)
+  console.log("User from DB:", user)
+  console.log("User role:", user?.role)
+
   if (!user || !(await bcrypt.compare(password, user.password_hash))) {
     throw new Error("Invalid credentials")
   }
@@ -71,8 +76,16 @@ export async function login(email: string, password: string) {
     expires,
   })
 
+  console.log("Session created with role:", user.role || "customer")
+
   const cookieStore = await cookies()
-  cookieStore.set("session", session, { expires, httpOnly: true })
+  cookieStore.set("session", session, { 
+    expires, 
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    secure: process.env.NODE_ENV === "production"
+  })
 
   return { user: { id: user.id, name: user.name, email: user.email, role: user.role || "customer" } }
 }
@@ -97,6 +110,10 @@ export async function getSession() {
 
 export async function getCurrentUser(): Promise<User | null> {
   const session = await getSession()
+  console.log("=== GET CURRENT USER DEBUG ===")
+  console.log("Session:", session)
+  console.log("User from session:", session?.user)
+  console.log("User role:", session?.user?.role)
   return session?.user || null
 }
 

@@ -53,21 +53,18 @@ export default function CheckoutPage() {
 
     try {
       const orderData = {
-        status: "pending" as const,
+        total_amount: total_amount,
         shipping_address: formData.shipping_address,
         billing_address: sameAsShipping ? formData.shipping_address : formData.billing_address,
         payment_method: formData.payment_method,
         items: items.map((item) => ({
-          id: Math.random().toString(36).substr(2, 9),
-          order_id: "",
           product_id: item.product.id,
-          product_name: item.product.name,
-          product_image: item.product.image,
           quantity: item.quantity,
           unit_price: item.product.price,
-          total_price: item.product.price * item.quantity,
         })),
       }
+
+      console.log("Envoi de la commande:", orderData)
 
       const response = await fetch("/api/orders", {
         method: "POST",
@@ -75,18 +72,21 @@ export default function CheckoutPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(orderData),
+        credentials: 'include', // Important pour envoyer les cookies
       })
 
-      if (response.ok) {
-        const order = await response.json()
-        clearCart()
-        router.push(`/payment/${order.id}`)
-      } else {
-        throw new Error("Erreur lors de la création de la commande")
+      const data = await response.json()
+      console.log("Réponse serveur:", response.status, data)
+
+      if (!response.ok) {
+        throw new Error(data.error || data.details || "Erreur lors de la création de la commande")
       }
-    } catch (error) {
+
+      clearCart()
+      router.push(`/payment/${data.id}`)
+    } catch (error: any) {
       console.error("Erreur checkout:", error)
-      alert("Erreur lors de la commande. Veuillez réessayer.")
+      alert(error.message || "Erreur lors de la commande. Veuillez réessayer.")
     } finally {
       setLoading(false)
     }

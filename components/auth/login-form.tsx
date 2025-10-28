@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -23,6 +24,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
+  const { login: authLogin } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,20 +37,31 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: 'include',
         body: JSON.stringify({ email, password }),
       })
 
       const data = await response.json()
 
+      console.log("=== LOGIN RESPONSE ===")
+      console.log("Response status:", response.status)
+      console.log("User data:", data)
+      console.log("User role:", data.user?.role)
+
       if (!response.ok) {
         throw new Error(data.error || "Erreur de connexion")
       }
 
-      // Success
+      // Update auth context
+      authLogin(data.user)
+
+      // Success - redirect based on role
       if (onSuccess) {
         onSuccess()
       } else {
-        router.push("/account")
+        // Redirect to admin panel if user is admin, otherwise to account page
+        const redirectPath = data.user?.role === "admin" ? "/admin" : "/account"
+        router.push(redirectPath)
       }
       router.refresh()
     } catch (error) {

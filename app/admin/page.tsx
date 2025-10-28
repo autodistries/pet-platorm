@@ -10,17 +10,21 @@ import OrdersTable from "@/components/admin/orders-table"
 import type { AdminStats, SalesData, TopProduct } from "@/lib/admin"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { Package, ShoppingCart, Mail, MessageSquare } from "lucide-react"
+import { useAdminAuth } from "@/hooks/use-admin-auth"
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [salesData, setSalesData] = useState<SalesData[]>([])
   const [topProducts, setTopProducts] = useState<TopProduct[]>([])
   const [orders, setOrders] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [dataLoading, setDataLoading] = useState(true)
+  const { isAuthorized, loading: authLoading } = useAdminAuth()
 
   useEffect(() => {
-    fetchDashboardData()
-  }, [])
+    if (isAuthorized) {
+      fetchDashboardData()
+    }
+  }, [isAuthorized])
 
   const fetchDashboardData = async () => {
     try {
@@ -72,16 +76,20 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error("Erreur lors du chargement des données:", error)
     } finally {
-      setLoading(false)
+      setDataLoading(false)
     }
   }
 
-  if (loading) {
+  if (authLoading || dataLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">Chargement du tableau de bord...</div>
       </div>
     )
+  }
+
+  if (!isAuthorized) {
+    return null
   }
 
   return (

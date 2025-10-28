@@ -2,12 +2,13 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Search, UserIcon, Menu, X, Heart, LogOut } from "lucide-react"
 import { CartButton } from "@/components/cart/cart-button"
+import { useAuth } from "@/contexts/auth-context"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,42 +17,24 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-interface User {
-  id: string
-  name: string
-  email: string
-}
-
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const router = useRouter()
-
-  useEffect(() => {
-    checkAuthStatus()
-  }, [])
-
-  const checkAuthStatus = async () => {
-    try {
-      const response = await fetch("/api/auth/me")
-      if (response.ok) {
-        const data = await response.json()
-        setUser(data.user)
-      }
-    } catch (error) {
-      console.error("Auth check failed:", error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const { user, isLoading, logout: authLogout } = useAuth()
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" })
-      setUser(null)
-      window.location.reload()
+      await fetch("/api/auth/logout", { 
+        method: "POST",
+        credentials: 'include'
+      })
+      
+      authLogout()
+      
+      // Redirect to login page
+      router.push("/auth/login")
+      router.refresh()
     } catch (error) {
       console.error("Logout failed:", error)
     }
@@ -142,9 +125,11 @@ export function Header() {
                     <DropdownMenuItem asChild>
                       <Link href="/orders">Mes commandes</Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin">Administration</Link>
-                    </DropdownMenuItem>
+                    {user.role === "admin" && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin">Administration</Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                       <LogOut className="mr-2 h-4 w-4" />
@@ -226,12 +211,14 @@ export function Header() {
                     >
                       Mes Commandes
                     </Link>
-                    <Link
-                      href="/admin"
-                      className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
-                    >
-                      Administration
-                    </Link>
+                    {user.role === "admin" && (
+                      <Link
+                        href="/admin"
+                        className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
+                      >
+                        Administration
+                      </Link>
+                    )}
                     <button
                       onClick={handleLogout}
                       className="text-sm font-medium text-destructive hover:text-destructive/80 transition-colors py-2 text-left"
