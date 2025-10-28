@@ -66,7 +66,7 @@ export async function login(email: string, password: string) {
       id: user.id,
       name: user.name,
       email: user.email,
-      role: "customer",
+      role: user.role || "customer",
     },
     expires,
   })
@@ -74,7 +74,7 @@ export async function login(email: string, password: string) {
   const cookieStore = await cookies()
   cookieStore.set("session", session, { expires, httpOnly: true })
 
-  return { user: { id: user.id, name: user.name, email: user.email } }
+  return { user: { id: user.id, name: user.name, email: user.email, role: user.role || "customer" } }
 }
 
 export async function logout() {
@@ -103,7 +103,7 @@ export async function getCurrentUser(): Promise<User | null> {
 // Mock database functions - replace with actual database queries
 async function getUserByEmail(email: string) {
   try {
-    const result = await query("SELECT id, name, email, password_hash FROM customers WHERE email = $1", [email])
+    const result = await query("SELECT id, name, email, password_hash, role FROM customers WHERE email = $1", [email])
 
     if (result.rows.length === 0) {
       return null

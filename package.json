@@ -4,9 +4,15 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "next dev",
+    "dev": "next dev -p 8080",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "db:start": "docker-compose up -d",
+    "db:stop": "docker-compose down",
+    "db:restart": "docker-compose restart",
+    "db:reset": "docker-compose down -v && docker-compose up -d",
+    "db:logs": "docker-compose logs -f postgres",
+    "generate:hashes": "node scripts/generate-hashes.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

@@ -1,13 +1,36 @@
-Setu uip posgresql
-- install package
-- sudo -i -u postgres
-- initdb --locale=C.UTF-8 --encoding=UTF8 -D '/var/lib/postgres/data'
-- pg_ctl -D /var/lib/postgres/data -l logfile start
-- createdb pet_accessories_db
-- psql
-- CREATE USER username WITH PASSWORD 'password';
-- GRANT ALL PRIVILEGES ON DATABASE pet_accessories_db TO username;
+# ✅ Setup PostgreSQL - TERMINÉ !
 
+## 🐳 Avec Docker (Recommandé)
 
+```powershell
+# Démarrage rapide
+.\start.ps1
 
-idk how but we need to put the postgres (not implemneted yet)
+# Ou manuellement
+pnpm run db:start
+pnpm run dev
+```
+
+## 🔐 Comptes disponibles
+
+**Admin:**
+- Email: `admin@petshop.com`
+- Password: `Admin123!`
+
+**Client:**
+- Email: `marie.dubois@email.com`
+- Password: `Marie123!`
+
+## 📚 Documentation
+
+- Voir `SETUP_DATABASE.md` pour le guide complet
+- Voir `README.md` pour les instructions d'installation
+
+## 🛠️ Commandes utiles
+
+```powershell
+pnpm run db:start    # Démarre PostgreSQL
+pnpm run db:stop     # Arrête PostgreSQL
+pnpm run db:reset    # Réinitialise la DB
+pnpm run db:logs     # Voir les logs
+```
