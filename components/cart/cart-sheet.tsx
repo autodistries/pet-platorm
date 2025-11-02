@@ -60,16 +60,16 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                   <div key={item.id} className="flex gap-4 py-4">
                     <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                       <img
-                        src={item.product.image_url || "/placeholder.svg"}
-                        alt={item.product.name}
+                        src={item.image_url || "/placeholder.svg"}
+                        alt={item.name}
                         className="w-full h-full object-cover"
                       />
                     </div>
 
                     <div className="flex-1 space-y-2">
                       <div>
-                        <h4 className="font-medium text-sm leading-tight">{item.product.name}</h4>
-                        <p className="text-sm text-muted-foreground">{formatPrice(item.product.price)}</p>
+                        <h4 className="font-medium text-sm leading-tight">{item.name}</h4>
+                        <p className="text-sm text-muted-foreground">{formatPrice(item.price)}</p>
                       </div>
 
                       <div className="flex items-center justify-between">
@@ -78,7 +78,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0"
-                            onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                            onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
                             disabled={item.quantity <= 1}
                           >
                             <Minus className="h-3 w-3" />
@@ -88,8 +88,8 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0"
-                            onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                            disabled={item.quantity >= item.product.stock_quantity}
+                            onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
+                            disabled={item.quantity >= item.stock_quantity}
                           >
                             <Plus className="h-3 w-3" />
                           </Button>
@@ -99,7 +99,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                           variant="ghost"
                           size="sm"
                           className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                          onClick={() => removeItem(item.product.id)}
+                          onClick={() => removeItem(item.product_id)}
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
@@ -107,7 +107,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                     </div>
 
                     <div className="text-right">
-                      <p className="font-medium text-sm">{formatPrice(item.product.price * item.quantity)}</p>
+                      <p className="font-medium text-sm">{formatPrice(item.price * item.quantity)}</p>
                     </div>
                   </div>
                 ))}

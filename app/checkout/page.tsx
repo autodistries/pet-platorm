@@ -58,9 +58,9 @@ export default function CheckoutPage() {
         billing_address: sameAsShipping ? formData.shipping_address : formData.billing_address,
         payment_method: formData.payment_method,
         items: items.map((item) => ({
-          product_id: item.product.id,
+          product_id: item.product_id,
           quantity: item.quantity,
-          unit_price: item.product.price,
+          unit_price: item.price,
         })),
       }
 
@@ -228,16 +228,16 @@ export default function CheckoutPage() {
                   <div key={item.id} className="flex justify-between items-center">
                     <div className="flex items-center space-x-3">
                       <img
-                        src={item.product.image_url || "/placeholder.svg"}
-                        alt={item.product.name}
+                        src={item.image_url || "/placeholder.svg"}
+                        alt={item.name}
                         className="w-12 h-12 object-cover rounded"
                       />
                       <div>
-                        <p className="font-medium">{item.product.name}</p>
+                        <p className="font-medium">{item.name}</p>
                         <p className="text-sm text-muted-foreground">Quantité: {item.quantity}</p>
                       </div>
                     </div>
-                    <p className="font-medium">{(item.product.price * item.quantity).toFixed(2)} €</p>
+                    <p className="font-medium">{(item.price * item.quantity).toFixed(2)} €</p>
                   </div>
                 ))}
 

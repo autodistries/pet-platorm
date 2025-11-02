@@ -37,7 +37,7 @@ export function AddToCartButton({
     setIsAdding(true)
 
     try {
-      addItem(product, quantity)
+      await addItem(product, quantity)
       setJustAdded(true)
 
       // Reset the "just added" state after 2 seconds

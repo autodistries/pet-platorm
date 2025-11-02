@@ -138,13 +138,20 @@ export async function createUser(name: string, email: string, password: string) 
 
   try {
     const result = await query(
-      "INSERT INTO customers (name, email, password_hash) VALUES ($1, $2, $3) RETURNING id, name, email",
-      [name, email, passwordHash],
+      "INSERT INTO customers (name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role",
+      [name, email, passwordHash, "customer"],
     )
 
+    console.log("User created in database:", result.rows[0])
     return result.rows[0]
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating user:", error)
+    
+    // Check for duplicate email constraint
+    if (error.code === '23505') { // PostgreSQL unique violation error code
+      throw new Error("duplicate key")
+    }
+    
     throw new Error("Failed to create user")
   }
 }

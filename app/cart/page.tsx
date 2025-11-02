@@ -67,8 +67,8 @@ export default function CartPage() {
                     <div className="flex gap-4">
                       <div className="w-24 h-24 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                         <img
-                          src={item.product.image_url || "/placeholder.svg"}
-                          alt={item.product.name}
+                          src={item.image_url || "/placeholder.svg"}
+                          alt={item.name}
                           className="w-full h-full object-cover"
                         />
                       </div>
@@ -76,26 +76,26 @@ export default function CartPage() {
                       <div className="flex-1 space-y-2">
                         <div>
                           <Link
-                            href={`/products/${item.product.id}`}
+                            href={`/products/${item.product_id}`}
                             className="font-medium hover:text-primary transition-colors"
                           >
-                            {item.product.name}
+                            {item.name}
                           </Link>
-                          {item.product.category && (
-                            <p className="text-sm text-muted-foreground">{item.product.category.name}</p>
+                          {item.category && (
+                            <p className="text-sm text-muted-foreground">{item.category}</p>
                           )}
                         </div>
 
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4">
-                            <span className="font-medium">{formatPrice(item.product.price)}</span>
+                            <span className="font-medium">{formatPrice(item.price)}</span>
 
                             <div className="flex items-center border rounded-md">
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 className="h-8 w-8 p-0"
-                                onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                                onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
                                 disabled={item.quantity <= 1}
                               >
                                 <Minus className="h-3 w-3" />
@@ -105,8 +105,8 @@ export default function CartPage() {
                                 variant="ghost"
                                 size="sm"
                                 className="h-8 w-8 p-0"
-                                onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                                disabled={item.quantity >= item.product.stock_quantity}
+                                onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
+                                disabled={item.quantity >= item.stock_quantity}
                               >
                                 <Plus className="h-3 w-3" />
                               </Button>
@@ -114,12 +114,12 @@ export default function CartPage() {
                           </div>
 
                           <div className="flex items-center gap-4">
-                            <span className="font-bold">{formatPrice(item.product.price * item.quantity)}</span>
+                            <span className="font-bold">{formatPrice(item.price * item.quantity)}</span>
 
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => removeItem(item.product.id)}
+                              onClick={() => removeItem(item.product_id)}
                               className="text-destructive hover:text-destructive"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -127,9 +127,9 @@ export default function CartPage() {
                           </div>
                         </div>
 
-                        {item.quantity >= item.product.stock_quantity && (
+                        {item.quantity >= item.stock_quantity && (
                           <p className="text-sm text-amber-600">
-                            Stock maximum atteint ({item.product.stock_quantity} disponibles)
+                            Stock maximum atteint ({item.stock_quantity} disponibles)
                           </p>
                         )}
                       </div>

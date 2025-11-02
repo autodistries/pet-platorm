@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -25,6 +26,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
+  const { login: authLogin } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -43,21 +45,30 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: 'include',
         body: JSON.stringify({ name, email, password }),
       })
 
       const data = await response.json()
 
+      console.log("=== REGISTER RESPONSE ===")
+      console.log("Response status:", response.status)
+      console.log("User data:", data)
+
       if (!response.ok) {
         throw new Error(data.error || "Erreur lors de la création du compte")
       }
 
-      // Success
+      // Update auth context with the new user
+      authLogin(data.user)
+
+      // Success - redirect to account page
       if (onSuccess) {
         onSuccess()
       } else {
-        router.push("/auth/login?message=account-created")
+        router.push("/account")
       }
+      router.refresh()
     } catch (error) {
       setError(error instanceof Error ? error.message : "Erreur lors de la création du compte")
     } finally {
