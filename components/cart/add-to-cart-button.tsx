@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { ShoppingCart, Check } from "lucide-react"
 import { useCart } from "@/contexts/cart-context"
 import type { Product } from "@/lib/products"
+import { useAuth } from "@/contexts/auth-context"
 
 interface AddToCartButtonProps {
   product: Product
@@ -26,10 +27,22 @@ export function AddToCartButton({
   const { addItem, getItemQuantity } = useCart()
   const [isAdding, setIsAdding] = useState(false)
   const [justAdded, setJustAdded] = useState(false)
+  const [isNotConnected, setIsNotConnected] = useState(false)
+  const { user, isLoading: authLoading } = useAuth()
 
   const currentQuantity = getItemQuantity(product.id)
   const isOutOfStock = product.stock_quantity === 0
   const wouldExceedStock = currentQuantity + quantity > product.stock_quantity
+
+
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        setIsNotConnected(true)
+      } 
+    }
+  }, [user, authLoading])
+
 
   const handleAddToCart = async () => {
     if (isOutOfStock || wouldExceedStock) return
@@ -52,6 +65,7 @@ export function AddToCartButton({
   }
 
   const getButtonText = () => {
+    if (isNotConnected) return "Connectez-vous à votre compte"
     if (isOutOfStock) return "Rupture de stock"
     if (wouldExceedStock) return "Stock insuffisant"
     if (justAdded) return "Ajouté !"
@@ -67,7 +81,7 @@ export function AddToCartButton({
   return (
     <Button
       onClick={handleAddToCart}
-      disabled={isOutOfStock || wouldExceedStock || isAdding}
+      disabled={isOutOfStock || wouldExceedStock || isAdding || isNotConnected}
       size={size}
       variant={justAdded ? "secondary" : variant}
       className={className}
