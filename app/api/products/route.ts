@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getProducts, mockCategories } from "@/lib/products"
+import { getProducts } from "@/lib/products"
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,18 +16,9 @@ export async function GET(request: NextRequest) {
       limit: searchParams.get("limit") ? Number.parseInt(searchParams.get("limit")!) : 12,
     }
 
-    const result = getProducts(filters)
+    const result = await getProducts(filters)
 
-    // Add category information to products
-    const productsWithCategories = result.products.map((product) => ({
-      ...product,
-      category: mockCategories.find((c) => c.id === product.category_id),
-    }))
-
-    return NextResponse.json({
-      ...result,
-      products: productsWithCategories,
-    })
+    return NextResponse.json(result)
   } catch (error) {
     console.error("Products API error:", error)
     return NextResponse.json({ error: "Erreur lors de la récupération des produits" }, { status: 500 })

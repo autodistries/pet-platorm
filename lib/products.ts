@@ -1,3 +1,5 @@
+import { query } from "./db"
+
 export interface Product {
   id: string
   name: string
@@ -32,212 +34,151 @@ export interface ProductFilters {
   limit?: number
 }
 
-// Mock data - in a real app, this would come from your database
-export const mockProducts: Product[] = [
-  {
-    id: "660e8400-e29b-41d4-a716-446655440001",
-    name: "Collier en Cuir Premium",
-    description:
-      "Collier en cuir véritable avec boucle en métal, disponible en plusieurs tailles. Confortable et durable pour un usage quotidien.",
-    price: 29.99,
-    category_id: "550e8400-e29b-41d4-a716-446655440001",
-    stock_quantity: 50,
-    sku: "COL-CUIR-001",
-    image_url: "/premium-leather-dog-collar.jpg",
-    is_active: true,
-    created_at: "2024-01-15T10:00:00Z",
-    updated_at: "2024-01-15T10:00:00Z",
-  },
-  {
-    id: "660e8400-e29b-41d4-a716-446655440002",
-    name: "Laisse Rétractable 5m",
-    description:
-      "Laisse rétractable robuste avec système de freinage automatique. Parfaite pour les promenades en toute sécurité.",
-    price: 24.99,
-    category_id: "550e8400-e29b-41d4-a716-446655440001",
-    stock_quantity: 30,
-    sku: "LAI-RET-001",
-    image_url: "/retractable-dog-leash.jpg",
-    is_active: true,
-    created_at: "2024-01-15T10:00:00Z",
-    updated_at: "2024-01-15T10:00:00Z",
-  },
-  {
-    id: "660e8400-e29b-41d4-a716-446655440003",
-    name: "Balle Interactive LED",
-    description:
-      "Balle lumineuse interactive qui s'active au mouvement. Stimule l'activité physique et mentale de votre animal.",
-    price: 19.99,
-    category_id: "550e8400-e29b-41d4-a716-446655440002",
-    stock_quantity: 75,
-    sku: "JOU-BAL-001",
-    image_url: "/led-interactive-pet-ball-toy.jpg",
-    is_active: true,
-    created_at: "2024-01-15T10:00:00Z",
-    updated_at: "2024-01-15T10:00:00Z",
-  },
-  {
-    id: "660e8400-e29b-41d4-a716-446655440004",
-    name: "Corde à Noeuds",
-    description:
-      "Corde de jeu résistante avec noeuds, parfaite pour le tir à la corde. Aide à maintenir une bonne hygiène dentaire.",
-    price: 12.99,
-    category_id: "550e8400-e29b-41d4-a716-446655440002",
-    stock_quantity: 100,
-    sku: "JOU-COR-001",
-    image_url: "/rope-toy-with-knots-for-dogs.jpg",
-    is_active: true,
-    created_at: "2024-01-15T10:00:00Z",
-    updated_at: "2024-01-15T10:00:00Z",
-  },
-  {
-    id: "660e8400-e29b-41d4-a716-446655440005",
-    name: "Gamelle Anti-Glouton",
-    description:
-      "Gamelle avec obstacles pour ralentir l'alimentation. Améliore la digestion et prévient les ballonnements.",
-    price: 16.99,
-    category_id: "550e8400-e29b-41d4-a716-446655440003",
-    stock_quantity: 40,
-    sku: "GAM-ANT-001",
-    image_url: "/slow-feeder-dog-bowl.jpg",
-    is_active: true,
-    created_at: "2024-01-15T10:00:00Z",
-    updated_at: "2024-01-15T10:00:00Z",
-  },
-  {
-    id: "660e8400-e29b-41d4-a716-446655440006",
-    name: "Distributeur d'Eau Automatique",
-    description:
-      "Fontaine à eau avec filtre pour chiens et chats. Encourage l'hydratation avec de l'eau fraîche en permanence.",
-    price: 45.99,
-    category_id: "550e8400-e29b-41d4-a716-446655440003",
-    stock_quantity: 25,
-    sku: "DIS-EAU-001",
-    image_url: "/automatic-pet-water-fountain.jpg",
-    is_active: true,
-    created_at: "2024-01-15T10:00:00Z",
-    updated_at: "2024-01-15T10:00:00Z",
-  },
-  {
-    id: "660e8400-e29b-41d4-a716-446655440007",
-    name: "Panier Orthopédique",
-    description:
-      "Panier avec mousse à mémoire de forme pour le confort articulaire. Idéal pour les animaux âgés ou souffrant d'arthrite.",
-    price: 89.99,
-    category_id: "550e8400-e29b-41d4-a716-446655440004",
-    stock_quantity: 20,
-    sku: "PAN-ORT-001",
-    image_url: "/orthopedic-pet-bed-memory-foam.jpg",
-    is_active: true,
-    created_at: "2024-01-15T10:00:00Z",
-    updated_at: "2024-01-15T10:00:00Z",
-  },
-  {
-    id: "660e8400-e29b-41d4-a716-446655440008",
-    name: "Coussin Chauffant",
-    description:
-      "Coussin chauffant électrique avec thermostat réglable. Procure chaleur et confort, particulièrement en hiver.",
-    price: 34.99,
-    category_id: "550e8400-e29b-41d4-a716-446655440004",
-    stock_quantity: 35,
-    sku: "COU-CHA-001",
-    image_url: "/heated-pet-cushion-pad.jpg",
-    is_active: true,
-    created_at: "2024-01-15T10:00:00Z",
-    updated_at: "2024-01-15T10:00:00Z",
-  },
-]
+export async function getProducts(filters: ProductFilters = {}) {
+  try {
+    let queryStr = `
+      SELECT p.*, c.name as category_name, c.description as category_description
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE p.is_active = true
+    `;
+    const queryParams: any[] = [];
+    let paramCount = 1;
 
-export const mockCategories: Category[] = [
-  {
-    id: "550e8400-e29b-41d4-a716-446655440001",
-    name: "Colliers et Laisses",
-    description: "Colliers, laisses et harnais pour chiens et chats",
-    created_at: "2024-01-15T10:00:00Z",
-  },
-  {
-    id: "550e8400-e29b-41d4-a716-446655440002",
-    name: "Jouets",
-    description: "Jouets interactifs et d'exercice pour animaux",
-    created_at: "2024-01-15T10:00:00Z",
-  },
-  {
-    id: "550e8400-e29b-41d4-a716-446655440003",
-    name: "Alimentation",
-    description: "Gamelles, distributeurs et accessoires d'alimentation",
-    created_at: "2024-01-15T10:00:00Z",
-  },
-  {
-    id: "550e8400-e29b-41d4-a716-446655440004",
-    name: "Couchage",
-    description: "Paniers, coussins et accessoires de repos",
-    created_at: "2024-01-15T10:00:00Z",
-  },
-  {
-    id: "550e8400-e29b-41d4-a716-446655440005",
-    name: "Hygiène",
-    description: "Produits et accessoires d'hygiène et de toilettage",
-    created_at: "2024-01-15T10:00:00Z",
-  },
-]
+    // Apply category filter
+    if (filters.category && filters.category !== "all") {
+      queryStr += ` AND p.category_id = $${paramCount}`;
+      queryParams.push(filters.category);
+      paramCount++;
+    }
 
-export function getProducts(filters: ProductFilters = {}) {
-  let filteredProducts = [...mockProducts]
+    // Apply search filter
+    if (filters.search) {
+      queryStr += ` AND (LOWER(p.name) LIKE $${paramCount} OR LOWER(p.description) LIKE $${paramCount})`;
+      queryParams.push(`%${filters.search.toLowerCase()}%`);
+      paramCount++;
+    }
 
-  // Apply category filter
-  if (filters.category && filters.category != "all") {
-    filteredProducts = filteredProducts.filter((p) => p.category_id === filters.category)
-  }
+    // Apply price filters
+    if (filters.minPrice !== undefined) {
+      queryStr += ` AND p.price >= $${paramCount}`;
+      queryParams.push(filters.minPrice);
+      paramCount++;
+    }
+    if (filters.maxPrice !== undefined) {
+      queryStr += ` AND p.price <= $${paramCount}`;
+      queryParams.push(filters.maxPrice);
+      paramCount++;
+    }
 
-  // Apply search filter
-  if (filters.search) {
-    const searchTerm = filters.search.toLowerCase()
-    filteredProducts = filteredProducts.filter(
-      (p) => p.name.toLowerCase().includes(searchTerm) || p.description.toLowerCase().includes(searchTerm),
-    )
-  }
+    // Count total before pagination
+    const countResult = await query(`SELECT COUNT(*) FROM (${queryStr}) as filtered_products`, queryParams);
+    const total = parseInt(countResult.rows[0].count);
 
-  // Apply price filters
-  if (filters.minPrice !== undefined) {
-    filteredProducts = filteredProducts.filter((p) => p.price >= filters.minPrice!)
-  }
-  if (filters.maxPrice !== undefined) {
-    filteredProducts = filteredProducts.filter((p) => p.price <= filters.maxPrice!)
-  }
+    // Apply sorting
+    if (filters.sortBy) {
+      const direction = filters.sortOrder === "desc" ? "DESC" : "ASC";
+      queryStr += ` ORDER BY p.${filters.sortBy} ${direction}`;
+    } else {
+      queryStr += " ORDER BY p.created_at DESC";
+    }
 
-  // Apply sorting
-  if (filters.sortBy) {
-    filteredProducts.sort((a, b) => {
-      const aValue = a[filters.sortBy!]
-      const bValue = b[filters.sortBy!]
-      const order = filters.sortOrder === "desc" ? -1 : 1
+    // Apply pagination
+    const page = filters.page || 1;
+    const limit = filters.limit || 12;
+    const offset = (page - 1) * limit;
+    queryStr += ` LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
+    queryParams.push(limit, offset);
 
-      if (typeof aValue === "string" && typeof bValue === "string") {
-        return aValue.localeCompare(bValue) * order
-      }
-      return (aValue < bValue ? -1 : aValue > bValue ? 1 : 0) * order
-    })
-  }
+    const result = await query(queryStr, queryParams);
 
-  // Apply pagination
-  const page = filters.page || 1
-  const limit = filters.limit || 12
-  const startIndex = (page - 1) * limit
-  const endIndex = startIndex + limit
+    // Transform the results to include category information
+    const products = result.rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      price: parseFloat(row.price),
+      category_id: row.category_id,
+      stock_quantity: row.stock_quantity,
+      sku: row.sku,
+      image_url: row.image_url,
+      is_active: row.is_active,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      category: row.category_id ? {
+        id: row.category_id,
+        name: row.category_name,
+        description: row.category_description,
+        created_at: row.created_at
+      } : undefined
+    }));
 
-  return {
-    products: filteredProducts.slice(startIndex, endIndex),
-    total: filteredProducts.length,
-    page,
-    limit,
-    totalPages: Math.ceil(filteredProducts.length / limit),
+    return {
+      products,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    throw new Error("Failed to fetch products");
   }
 }
 
-export function getProductById(id: string): Product | undefined {
-  return mockProducts.find((p) => p.id === id)
+export async function getProductById(id: string): Promise<Product | undefined> {
+  try {
+    const result = await query(`
+      SELECT p.*, c.name as category_name, c.description as category_description
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE p.id = $1 AND p.is_active = true
+    `, [id]);
+
+    if (result.rows.length === 0) {
+      return undefined;
+    }
+
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      price: parseFloat(row.price),
+      category_id: row.category_id,
+      stock_quantity: row.stock_quantity,
+      sku: row.sku,
+      image_url: row.image_url,
+      is_active: row.is_active,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      category: row.category_id ? {
+        id: row.category_id,
+        name: row.category_name,
+        description: row.category_description,
+        created_at: row.created_at
+      } : undefined
+    };
+  } catch (error) {
+    console.error("Error fetching product:", error);
+    throw new Error("Failed to fetch product");
+  }
 }
 
-export function getCategoryById(id: string): Category | undefined {
-  return mockCategories.find((c) => c.id === id)
+export async function getCategoryById(id: string): Promise<Category | undefined> {
+  try {
+    const result = await query(
+      "SELECT * FROM categories WHERE id = $1",
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return undefined;
+    }
+
+    return result.rows[0];
+  } catch (error) {
+    console.error("Error fetching category:", error);
+    throw new Error("Failed to fetch category");
+  }
 }
