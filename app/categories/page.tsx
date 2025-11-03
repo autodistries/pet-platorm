@@ -58,7 +58,7 @@ export default function CategoriesPage() {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {categories.map((category) => (
-            <Link key={category.id} href={`/products?category=${category.id}`}>
+            <Link key={category.name} href={`/products?category=${category.name}`}>
               <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
                 <div className="aspect-video overflow-hidden rounded-t-lg">
                   <img
