@@ -6,6 +6,7 @@ import { ShoppingCart, Check } from "lucide-react"
 import { useCart } from "@/contexts/cart-context"
 import type { Product } from "@/lib/products"
 import { useAuth } from "@/contexts/auth-context"
+import { useRouter } from "next/navigation"
 
 interface AddToCartButtonProps {
   product: Product
@@ -24,6 +25,7 @@ export function AddToCartButton({
   className = "",
   showText = true,
 }: AddToCartButtonProps) {
+  const router = useRouter()
   const { addItem, getItemQuantity } = useCart()
   const [isAdding, setIsAdding] = useState(false)
   const [justAdded, setJustAdded] = useState(false)
@@ -45,6 +47,11 @@ export function AddToCartButton({
 
 
   const handleAddToCart = async () => {
+    if (isNotConnected) {
+      router.push('/auth/login')
+      return
+    }
+    
     if (isOutOfStock || wouldExceedStock) return
 
     setIsAdding(true)
@@ -81,7 +88,7 @@ export function AddToCartButton({
   return (
     <Button
       onClick={handleAddToCart}
-      disabled={isOutOfStock || wouldExceedStock || isAdding || isNotConnected}
+      disabled={isOutOfStock || wouldExceedStock || isAdding}
       size={size}
       variant={justAdded ? "secondary" : variant}
       className={className}
