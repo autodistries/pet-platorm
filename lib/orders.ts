@@ -69,22 +69,28 @@ export async function createOrder(
 
     if (customerCheck.rows.length === 0) {
       // Récupérer les infos de l'utilisateur depuis la table users
-      const userResult = await client.query(
-        'SELECT email, first_name, last_name FROM users WHERE id = $1',
-        [userId]
-      )
+        try {
+          const userResult = await client.query(
+            'SELECT email, first_name, last_name FROM users WHERE id = $1',
+            [userId]
+          )
 
-      if (userResult.rows.length > 0) {
-        const user = userResult.rows[0]
-        await client.query(
-          `INSERT INTO customers (id, email, first_name, last_name, phone)
-           VALUES ($1, $2, $3, $4, $5)
-           ON CONFLICT (id) DO NOTHING`,
-          [userId, user.email, user.first_name || 'Admin', user.last_name || 'User', '0000000000']
-        )
-      } else {
-        throw new Error('Utilisateur non trouvé')
-      }
+          if (userResult.rows.length > 0) {
+            const user = userResult.rows[0]
+            await client.query(
+              `INSERT INTO customers (id, email, name, password_hash, phone, role)
+               VALUES ($1, $2, $3, $4, $5, 'customer')
+               ON CONFLICT (id) DO NOTHING`,
+              [userId, user.email, (user.first_name || 'Admin') + ' ' + (user.last_name || 'User'), '', '0000000000']
+            )
+          } else {
+            throw new Error('Utilisateur non trouvé')
+          }
+        } catch (err: any) {
+          // If the users table doesn't exist or another DB error occurs, fail gracefully
+          console.warn('Could not sync user from users table:', err.message || err)
+          throw new Error('Utilisateur non trouvé')
+        }
     }
 
     // 1. Créer les adresses
@@ -154,10 +160,17 @@ export async function createOrder(
     }
 
     // 4. Créer le paiement
+    // Normalize payment method coming from the client to match DB CHECK constraint
+    let paymentMethod = orderData.payment_method
+    if (paymentMethod === "card") paymentMethod = "credit_card"
+    // Fallback: if an unexpected value is provided, default to 'credit_card'
+    const allowed = ["credit_card", "paypal", "bank_transfer"]
+    if (!allowed.includes(paymentMethod)) paymentMethod = "credit_card"
+
     await client.query(
       `INSERT INTO payments (order_id, payment_method, status, amount)
        VALUES ($1, $2, 'pending', $3)`,
-      [orderId, orderData.payment_method, orderData.total_amount]
+      [orderId, paymentMethod, orderData.total_amount]
     )
 
     await client.query('COMMIT')

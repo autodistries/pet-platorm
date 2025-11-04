@@ -1,21 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createOrder, getUserOrders } from "@/lib/orders"
-import { verifyToken } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
+import { query } from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get("token")?.value
-
-    if (!token) {
+    const session = await getCurrentUser()
+    if (!session) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
 
-    const payload = verifyToken(token)
-    if (!payload) {
-      return NextResponse.json({ error: "Token invalide" }, { status: 401 })
-    }
-
-    const orders = await getUserOrders(payload.userId)
+  const orders = await getUserOrders(session.id)
     return NextResponse.json(orders)
   } catch (error) {
     console.error("Erreur lors de la récupération des commandes:", error)
@@ -25,62 +20,32 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const token = request.cookies.get("token")?.value
-    
-    console.log("=== DEBUT POST /api/orders ===")
-    console.log("Token présent:", !!token)
+  console.log("=== DEBUT POST /api/orders ===")
+  console.log("Request Cookie header:", request.headers.get('cookie'))
 
-    const orderData = await request.json()
-    console.log("Données de commande reçues:", orderData)
-    
-    // Validation des données
-    if (!orderData.items || orderData.items.length === 0) {
-      console.log("ERREUR: Panier vide")
-      return NextResponse.json({ error: "Le panier est vide" }, { status: 400 })
-    }
+      const orderData = await request.json()
+      console.log("Données de commande reçues:", orderData)
 
-    if (!orderData.shipping_address || !orderData.shipping_address.street) {
-      console.log("ERREUR: Adresse invalide")
-      return NextResponse.json({ error: "Adresse de livraison invalide" }, { status: 400 })
-    }
-
-    let userId: string
-
-    // Si pas de token, créer une commande invité
-    if (!token) {
-      console.log("Pas de token - création d'une commande invité")
-      // Utiliser l'email comme identifiant temporaire ou créer un guest user
-      userId = "guest-" + Date.now() + "-" + Math.random().toString(36).substr(2, 9)
-      
-      // Créer un utilisateur invité temporaire
-      const client = await import("@/lib/db").then(m => m.default)
-      const guestUserResult = await client.query(
-        `INSERT INTO users (id, email, password_hash, first_name, last_name, role)
-         VALUES ($1, $2, $3, $4, $5, 'customer')
-         RETURNING id`,
-        [userId, orderData.guest_email || 'guest@temp.com', '', 'Invité', 'Invité']
-      )
-      userId = guestUserResult.rows[0].id
-    } else {
-      const payload = verifyToken(token)
-      console.log("Payload du token:", payload)
-      
-      if (!payload) {
-        console.log("Token invalide - création d'une commande invité")
-        userId = "guest-" + Date.now() + "-" + Math.random().toString(36).substr(2, 9)
-        
-        const client = await import("@/lib/db").then(m => m.default)
-        const guestUserResult = await client.query(
-          `INSERT INTO users (id, email, password_hash, first_name, last_name, role)
-           VALUES ($1, $2, $3, $4, $5, 'customer')
-           RETURNING id`,
-          [userId, orderData.guest_email || 'guest@temp.com', '', 'Invité', 'Invité']
-        )
-        userId = guestUserResult.rows[0].id
-      } else {
-        userId = payload.userId
+      // Validation des données
+      if (!orderData.items || orderData.items.length === 0) {
+        console.log("ERREUR: Panier vide")
+        return NextResponse.json({ error: "Le panier est vide" }, { status: 400 })
       }
-    }
+
+      if (!orderData.shipping_address || !orderData.shipping_address.street) {
+        console.log("ERREUR: Adresse invalide")
+        return NextResponse.json({ error: "Adresse de livraison invalide" }, { status: 400 })
+      }
+
+      // Require authenticated user — guest/anonymous orders are no longer allowed
+    const session = await getCurrentUser()
+    console.log("Session from getCurrentUser():", session)
+      if (!session) {
+        console.log("Rejet de la commande: authentification requise (no session)")
+        return NextResponse.json({ error: "Authentification requise. Veuillez vous connecter ou créer un compte." }, { status: 401 })
+      }
+
+      const userId = session.id
 
     console.log("Création de la commande pour userId:", userId)
     const order = await createOrder(userId, orderData)

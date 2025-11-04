@@ -1,28 +1,24 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getOrderById, updateOrderStatus } from "@/lib/orders"
-import { verifyToken } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const token = request.cookies.get("token")?.value
-
-    if (!token) {
+    const session = await getCurrentUser()
+    if (!session) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
 
-    const payload = verifyToken(token)
-    if (!payload) {
-      return NextResponse.json({ error: "Token invalide" }, { status: 401 })
-    }
+    const { id } = (await params) as { id: string }
 
-    const order = await getOrderById(params.id)
+    const order = await getOrderById(id)
 
     if (!order) {
       return NextResponse.json({ error: "Commande non trouvée" }, { status: 404 })
     }
 
     // Vérifier que l'utilisateur peut accéder à cette commande
-    if (order.user_id !== payload.userId) {
+    if (order.user_id !== session.id) {
       return NextResponse.json({ error: "Accès refusé" }, { status: 403 })
     }
 
@@ -35,19 +31,22 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const token = request.cookies.get("token")?.value
-
-    if (!token) {
+    const session = await getCurrentUser()
+    if (!session) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
 
-    const payload = verifyToken(token)
-    if (!payload) {
-      return NextResponse.json({ error: "Token invalide" }, { status: 401 })
-    }
+      const { status } = await request.json()
 
-    const { status } = await request.json()
-    const order = await updateOrderStatus(params.id, status)
+      // Await params (Next.js requires awaiting params before accessing properties)
+      const { id } = (await params) as { id: string }
+
+      // Optional: only allow the owner (or admin) to update
+      const existing = await getOrderById(id)
+      if (!existing) return NextResponse.json({ error: "Commande non trouvée" }, { status: 404 })
+      if (existing.user_id !== session.id) return NextResponse.json({ error: "Accès refusé" }, { status: 403 })
+
+      const order = await updateOrderStatus(id, status)
 
     if (!order) {
       return NextResponse.json({ error: "Commande non trouvée" }, { status: 404 })

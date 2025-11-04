@@ -237,13 +237,26 @@ export async function DELETE() {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
     }
 
-    console.log("=== CLEAR CART ===")
-    console.log("User ID:", user.id)
+    console.log("=== CLEAR CART ===");
+    console.log("User ID:", user.id);
 
-    await query(
-      "DELETE FROM cart_items WHERE customer_id = $1",
+    // Get the cart id for the user
+    const cartResult = await query(
+      "SELECT id FROM carts WHERE customer_id = $1",
       [user.id]
-    )
+    );
+
+    if (cartResult.rows.length === 0) {
+      return NextResponse.json({ error: "No cart found for this user" }, { status: 404 });
+    }
+
+    const cartId = cartResult.rows[0].id;
+
+    // Delete all items from the cart
+    await query(
+      "DELETE FROM cart_items WHERE cart_id = $1",
+      [cartId]
+    );
 
     return NextResponse.json({ message: "Panier vidé" })
   } catch (error) {

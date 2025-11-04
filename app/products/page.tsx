@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
+import { Header } from "@/components/header"
+import { Footer } from "@/components/footer"
 import { ProductCard } from "@/components/product-card"
 import { ProductFilters } from "@/components/product-filters"
 import { Button } from "@/components/ui/button"
@@ -19,21 +21,69 @@ export default function ProductsPage() {
     totalPages: 1,
     total: 0,
   })
-  const [filters, setFilters] = useState<Record<string, string>>({})
+  const [filters, setFilters] = useState<Record<string, string>>(() => {
+    // Initialize filters from URL parameters or defaults
+    const urlParams = {
+      category: searchParams.get("category") || "all",
+      search: searchParams.get("search") || "",
+      maxPrice: searchParams.get("maxPrice") || "100",
+      minPrice: searchParams.get("minPrice") || "0",
+      sortBy: searchParams.get("sortBy") || "created_at",
+      sortOrder: searchParams.get("sortOrder") || "desc",
+    };
+    
+    // Remove undefined/empty values
+    return Object.fromEntries(
+      Object.entries(urlParams).filter(([_, value]) => value !== null && value !== "")
+    );
+  });
 
+  // Combined initial fetch of both categories and products
   useEffect(() => {
-    fetchCategories()
+    const initializeData = async () => {
+      setLoading(true)
+      try {
+        // Use initial filters for the first products fetch
+        const params = new URLSearchParams({
+          ...filters,
+          page: "1",
+          limit: "12"
+        });
+
+        const [categoriesRes, productsRes] = await Promise.all([
+          fetch("/api/categories"),
+          fetch("/api/products?" + params)
+        ]);
+
+        if (categoriesRes.ok && productsRes.ok) {
+          const [categoriesData, productsData] = await Promise.all([
+            categoriesRes.json(),
+            productsRes.json()
+          ]);
+
+          setCategories(categoriesData);
+          setProducts(productsData.products);
+          setPagination({
+            page: productsData.page,
+            totalPages: productsData.totalPages,
+            total: productsData.total,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch initial data:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    initializeData()
   }, [])
 
+  // Only fetch products when filters actually change
   useEffect(() => {
-    const searchQuery = searchParams.get("search")
-    if (searchQuery) {
-      setFilters((prev) => ({ ...prev, search: searchQuery }))
-    }
-  }, [searchParams])
+    // Skip the initial render since we already fetched products
+    if (Object.keys(filters).length === 0) return;
 
-  useEffect(() => {
-    // if (products.length != 0) return;
     fetchProducts(true)
   }, [filters])
 
@@ -58,7 +108,7 @@ export default function ProductsPage() {
       }
 
       const cleanFilters = Object.fromEntries(
-        Object.entries(filters).filter(([_, value]) =>  value && value.toString().trim() !== ""),
+        Object.entries(filters).filter(([_, value]) => value && value.toString().trim() !== ""),
       )
 
       const params = new URLSearchParams({
@@ -102,20 +152,20 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-balance mb-2">Nos Produits</h1>
-        <p className="text-muted-foreground">Découvrez notre sélection d'accessoires premium pour vos compagnons</p>
-      </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-balance mb-2">Nos Produits</h1>
+          <p className="text-muted-foreground">Découvrez notre sélection d'accessoires premium pour vos compagnons</p>
+        </div>
 
-      <div className="grid lg:grid-cols-4 gap-8">
-        {/* Filters Sidebar */}
-        <div className="lg:col-span-1">
+        <div className="grid lg:grid-cols-4 gap-8">
+          {/* Filters Sidebar */}
+          <div className="lg:col-span-1">
             <ProductFilters categories={categories} onFiltersChange={handleFiltersChange} initialFilters={filters} />
           </div>
 
-        {/* Products Grid */}
-        <div className="lg:col-span-3">
+          {/* Products Grid */}
+          <div className="lg:col-span-3">
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin" />
@@ -154,6 +204,6 @@ export default function ProductsPage() {
             )}
           </div>
         </div>
-      </div>
-    )
-  }
+    </div>
+  )
+}

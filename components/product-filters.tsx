@@ -21,13 +21,29 @@ export function ProductFilters({ categories, onFiltersChange, initialFilters = {
   const [filters, setFilters] = useState({
     search: initialFilters.search || "",
     category: initialFilters.category || "all",
-    minPrice: initialFilters.minPrice || 0,
-    maxPrice: initialFilters.maxPrice || 100,
+    minPrice: parseFloat(initialFilters.minPrice) || 0,
+    maxPrice: parseFloat(initialFilters.maxPrice) || 100,
     sortBy: initialFilters.sortBy || "created_at",
     sortOrder: initialFilters.sortOrder || "desc",
-  })
+  });
 
-  const [priceRange, setPriceRange] = useState([filters.minPrice, filters.maxPrice])
+  // Update filters when initialFilters change (URL changes)
+  useEffect(() => {
+    setFilters(prev => ({
+      ...prev,
+      search: initialFilters.search || prev.search,
+      category: initialFilters.category || prev.category,
+      minPrice: parseFloat(initialFilters.minPrice) || prev.minPrice,
+      maxPrice: parseFloat(initialFilters.maxPrice) || prev.maxPrice,
+      sortBy: initialFilters.sortBy || prev.sortBy,
+      sortOrder: initialFilters.sortOrder || prev.sortOrder,
+    }));
+  }, [initialFilters]);
+
+  const [priceRange, setPriceRange] = useState([
+    parseFloat(initialFilters.minPrice) || 0,
+    parseFloat(initialFilters.maxPrice) || 100
+  ]);
 
   const debouncedFiltersChange = useCallback(
     (newFilters: any) => {
@@ -41,14 +57,24 @@ export function ProductFilters({ categories, onFiltersChange, initialFilters = {
   )
 
   useEffect(() => {
-    const cleanup = debouncedFiltersChange({
-      ...filters,
-      minPrice: priceRange[0],
-      maxPrice: priceRange[1],
-    })
+    // Skip the initial render to avoid duplicate requests
+    const isInitialFilters = 
+      filters.category === initialFilters.category &&
+      priceRange[0] === (initialFilters.minPrice || 0) &&
+      priceRange[1] === (initialFilters.maxPrice || 100) &&
+      filters.sortBy === initialFilters.sortBy &&
+      filters.sortOrder === initialFilters.sortOrder;
 
-    return cleanup
-  }, [filters, priceRange, debouncedFiltersChange])
+    if (!isInitialFilters) {
+      const cleanup = debouncedFiltersChange({
+        ...filters,
+        minPrice: priceRange[0],
+        maxPrice: priceRange[1],
+      });
+
+      return cleanup;
+    }
+  }, [filters, priceRange, debouncedFiltersChange, initialFilters])
 
   const handleFilterChange = (key: string, value: any) => {
     setFilters((prev) => ({ ...prev, [key]: value }))
@@ -68,7 +94,7 @@ export function ProductFilters({ categories, onFiltersChange, initialFilters = {
   }
 
   const hasActiveFilters =
-    filters.search || filters.category !== "all" || filters.minPrice > 0 || filters.maxPrice < 100
+    filters.search != "" || filters.category !== "all" || filters.minPrice > 0 || filters.maxPrice < 100
 
   return (
     <div className="space-y-4">

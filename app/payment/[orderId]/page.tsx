@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { Header } from "@/components/header"
-import { Footer } from "@/components/footer"
+// Header/Footer are provided by RootLayout — don't render them here to avoid duplication
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,7 +18,7 @@ export default function PaymentPage() {
   const params = useParams()
   const router = useRouter()
   const [order, setOrder] = useState<Order | null>(null)
-  const [paymentMethod, setPaymentMethod] = useState("card")
+  const [paymentMethod, setPaymentMethod] = useState("credit_card")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
@@ -38,7 +37,7 @@ export default function PaymentPage() {
 
   const fetchOrder = async (orderId: string) => {
     try {
-      const response = await fetch(`/api/orders/${orderId}`)
+      const response = await fetch(`/api/orders/${orderId}`, { credentials: "include" })
       if (response.ok) {
         const data = await response.json()
         setOrder(data)
@@ -68,8 +67,9 @@ export default function PaymentPage() {
           headers: {
             "Content-Type": "application/json",
           },
+          credentials: "include",
           body: JSON.stringify({
-            status: "paid",
+            status: "confirmed",
             payment_method: paymentMethod,
           }),
         })
@@ -98,7 +98,7 @@ export default function PaymentPage() {
   }
 
   const isFormValid = () => {
-    if (paymentMethod === "card") {
+    if (paymentMethod === "credit_card") {
       return (
         cardData.number.length >= 16 &&
         cardData.expiry.length >= 5 &&
@@ -111,49 +111,40 @@ export default function PaymentPage() {
 
   if (!order) {
     return (
-      <div className="min-h-screen">
-        <Header />
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p>Chargement de votre commande...</p>
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center min-h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Chargement de votre commande...</p>
         </div>
-        <Footer />
       </div>
     )
   }
 
   if (success) {
     return (
-      <div className="min-h-screen">
-        <Header />
-        <div className="container mx-auto px-4 py-8">
-          <Card className="max-w-md mx-auto border-green-200 bg-green-50">
-            <CardContent className="pt-6">
-              <div className="text-center space-y-4">
-                <CheckCircle className="h-16 w-16 text-green-600 mx-auto" />
-                <h2 className="text-2xl font-bold text-green-800">Paiement réussi !</h2>
-                <p className="text-green-700">
-                  Votre paiement a été traité avec succès. Vous allez être redirigé vers votre commande...
-                </p>
-                <div className="pt-4">
-                  <Link href={`/orders/${order.id}`}>
-                    <Button className="w-full">Voir ma commande</Button>
-                  </Link>
-                </div>
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-md mx-auto border-green-200 bg-green-50">
+          <CardContent className="pt-6">
+            <div className="text-center space-y-4">
+              <CheckCircle className="h-16 w-16 text-green-600 mx-auto" />
+              <h2 className="text-2xl font-bold text-green-800">Paiement réussi !</h2>
+              <p className="text-green-700">
+                Votre paiement a été traité avec succès. Vous allez être redirigé vers votre commande...
+              </p>
+              <div className="pt-4">
+                <Link href={`/orders/${order.id}`}>
+                  <Button className="w-full">Voir ma commande</Button>
+                </Link>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-        <Footer />
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   return (
     <div className="min-h-screen">
-      <Header />
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">Paiement</h1>
 
@@ -173,7 +164,7 @@ export default function PaymentPage() {
               <CardContent>
                 <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-4">
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="card" id="card" />
+                    <RadioGroupItem value="credit_card" id="card" />
                     <Label htmlFor="card" className="flex items-center gap-2">
                       <CreditCard className="h-4 w-4" />
                       Carte bancaire
@@ -187,7 +178,7 @@ export default function PaymentPage() {
               </CardContent>
             </Card>
 
-            {paymentMethod === "card" && (
+            {paymentMethod === "credit_card" && (
               <Card>
                 <CardHeader>
                   <CardTitle>Informations de carte</CardTitle>
@@ -315,7 +306,6 @@ export default function PaymentPage() {
           </div>
         </div>
       </div>
-      <Footer />
     </div>
   )
 }

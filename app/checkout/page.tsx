@@ -5,6 +5,7 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/contexts/cart-context"
+import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,6 +18,7 @@ import type { CheckoutData } from "@/lib/orders"
 export default function CheckoutPage() {
   const { items, total_amount, clearCart } = useCart()
   const router = useRouter()
+  const { user, isLoading: authLoading } = useAuth()
   const [loading, setLoading] = useState(false)
   const [sameAsShipping, setSameAsShipping] = useState(true)
 
@@ -98,6 +100,32 @@ export default function CheckoutPage() {
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Votre panier est vide</h1>
           <Button onClick={() => router.push("/products")}>Continuer vos achats</Button>
+        </div>
+      </div>
+    )
+  }
+
+  // Block checkout for unauthenticated users
+  if (authLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Vérification de l'authentification...</h1>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Connexion requise</h1>
+          <p className="mb-4">Vous devez être connecté pour passer une commande. Veuillez vous connecter ou créer un compte.</p>
+          <div className="flex justify-center gap-4">
+            <Button onClick={() => router.push('/auth/login')}>Se connecter</Button>
+            <Button variant="outline" onClick={() => router.push('/auth/register')}>S'inscrire</Button>
+          </div>
         </div>
       </div>
     )
@@ -206,9 +234,9 @@ export default function CheckoutPage() {
                   onValueChange={(value) => setFormData((prev) => ({ ...prev, payment_method: value }))}
                 >
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="card" id="card" />
-                    <Label htmlFor="card">Carte bancaire</Label>
-                  </div>
+                      <RadioGroupItem value="credit_card" id="card" />
+                      <Label htmlFor="card">Carte bancaire</Label>
+                    </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="paypal" id="paypal" />
                     <Label htmlFor="paypal">PayPal</Label>
