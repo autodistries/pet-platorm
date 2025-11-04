@@ -4,6 +4,16 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+
+CREATE ROLE petadmin WITH PASSWORD 'password';
+CREATE DATABASE pet_accessories_db;
+GRANT ALL PRIVILEGES ON DATABASE pet_accessories_db TO petadmin;
+\c pet_accessories_db
+CREATE SCHEMA public;
+GRANT ALL PRIVILEGES ON SCHEMA public TO petadmin;
+SET ROLE petadmin;
+
+
 -- ============================================
 -- TABLES CREATION
 -- ============================================

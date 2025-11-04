@@ -11,6 +11,7 @@ CREATE TABLE customers (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     phone VARCHAR(50),
+    role VARCHAR(20) DEFAULT 'customer' CHECK (role IN ('customer', 'admin')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -67,6 +68,7 @@ CREATE TABLE cart_items (
     cart_id UUID REFERENCES carts(id) ON DELETE CASCADE,
     product_id UUID REFERENCES products(id) ON DELETE CASCADE,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(cart_id, product_id)
 );
@@ -139,8 +141,45 @@ CREATE TABLE support_messages (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Table pour les inscriptions à la newsletter
+CREATE TABLE IF NOT EXISTS newsletter_subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(255) NOT NULL UNIQUE,
+    subscribed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN DEFAULT true,
+    ip_address VARCHAR(45),
+    user_agent TEXT
+);
+
+-- Table pour les messages de contact
+CREATE TABLE IF NOT EXISTS contact_messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    subject VARCHAR(500) NOT NULL,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_read BOOLEAN DEFAULT false,
+    ip_address VARCHAR(45),
+    user_agent TEXT
+);
+
+-- Index pour améliorer les performances
+CREATE INDEX IF NOT EXISTS idx_newsletter_email ON newsletter_subscriptions(email);
+CREATE INDEX IF NOT EXISTS idx_newsletter_subscribed_at ON newsletter_subscriptions(subscribed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_contact_created_at ON contact_messages(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_contact_is_read ON contact_messages(is_read);
+
+-- Commentaires
+COMMENT ON TABLE newsletter_subscriptions IS 'Stocke les inscriptions à la newsletter';
+COMMENT ON TABLE contact_messages IS 'Stocke les messages envoyés via le formulaire de contact';
+COMMENT ON COLUMN newsletter_subscriptions.is_active IS 'Permet de gérer les désinscriptions sans supprimer les données';
+COMMENT ON COLUMN contact_messages.is_read IS 'Indique si le message a été lu par un administrateur';
+
+
 -- Create indexes for better performance
 CREATE INDEX idx_customers_email ON customers(email);
+CREATE INDEX idx_customers_role ON customers(role);
 CREATE INDEX idx_products_category ON products(category_id);
 CREATE INDEX idx_products_active ON products(is_active);
 CREATE INDEX idx_orders_customer ON orders(customer_id);
