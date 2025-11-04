@@ -16,7 +16,7 @@ export default function AdminProductsPage() {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch("/api/admin/products")
+      const response = await fetch("/api/admin/products", { credentials: "include" })
       if (response.ok) {
         const data = await response.json()
         setProducts(data)

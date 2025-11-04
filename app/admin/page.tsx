@@ -29,9 +29,9 @@ export default function AdminDashboard() {
   const fetchDashboardData = async () => {
     try {
       const [statsRes, salesRes, ordersRes] = await Promise.all([
-        fetch("/api/admin/stats"),
-        fetch("/api/admin/sales"),
-        fetch("/api/admin/orders"),
+        fetch("/api/admin/stats", { credentials: "include" }),
+        fetch("/api/admin/sales", { credentials: "include" }),
+        fetch("/api/admin/orders", { credentials: "include" }),
       ])
 
       if (statsRes.ok) {

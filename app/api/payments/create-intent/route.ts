@@ -1,18 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createPaymentIntent } from "@/lib/payments"
-import { verifyToken } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
   try {
-    const token = request.cookies.get("token")?.value
-
-    if (!token) {
+    const session = await getCurrentUser()
+    if (!session) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
-    }
-
-    const payload = verifyToken(token)
-    if (!payload) {
-      return NextResponse.json({ error: "Token invalide" }, { status: 401 })
     }
 
     const { amount, order_id } = await request.json()

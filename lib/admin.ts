@@ -97,13 +97,13 @@ export async function getTopProducts(): Promise<TopProduct[]> {
 export async function getAllOrders(): Promise<any[]> {
   const result = await db.query(
     `SELECT o.id, o.total_amount, o.status, o.created_at,
-            c.first_name || ' ' || c.last_name as customer_name,
+            c.name as customer_name,
             c.email as customer_email,
             COUNT(oi.id) as items_count
      FROM orders o
      LEFT JOIN customers c ON o.customer_id = c.id
      LEFT JOIN order_items oi ON o.id = oi.order_id
-     GROUP BY o.id, c.first_name, c.last_name, c.email
+     GROUP BY o.id, c.name, c.email
      ORDER BY o.created_at DESC
      LIMIT 50`
   )

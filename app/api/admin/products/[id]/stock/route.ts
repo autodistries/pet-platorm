@@ -6,8 +6,8 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { stock_quantity } = await request.json()
-    const productId = params.id
+  const { stock_quantity } = await request.json()
+  const { id: productId } = (await params) as { id: string }
 
     if (stock_quantity === undefined || stock_quantity < 0) {
       return NextResponse.json(

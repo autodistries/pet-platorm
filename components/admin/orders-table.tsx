@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -73,8 +74,8 @@ export default function OrdersTable({ orders }: OrdersTableProps) {
                 <TableCell>{order.total_amount.toFixed(2)} €</TableCell>
                 <TableCell>{new Date(order.created_at).toLocaleDateString("fr-FR")}</TableCell>
                 <TableCell>
-                  <Button variant="outline" size="sm">
-                    Voir
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={`/admin/orders/${order.id}`}>Voir</Link>
                   </Button>
                 </TableCell>
               </TableRow>
