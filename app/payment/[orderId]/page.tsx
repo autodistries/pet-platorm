@@ -41,6 +41,10 @@ export default function PaymentPage() {
       if (response.ok) {
         const data = await response.json()
         setOrder(data)
+        // Si un mode de paiement est déjà défini, l'utiliser
+        if (data.payment_method && data.payment_method !== "pending") {
+          setPaymentMethod(data.payment_method)
+        }
       }
     } catch (error) {
       console.error("Erreur lors du chargement de la commande:", error)

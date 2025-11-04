@@ -33,6 +33,14 @@ const statusLabels = {
   cancelled: "Annulée",
 }
 
+const paymentMethodLabels: Record<string, string> = {
+  credit_card: "Carte bancaire",
+  card: "Carte bancaire",
+  paypal: "PayPal",
+  bank_transfer: "Virement bancaire",
+  pending: "En attente",
+}
+
 export default function AdminOrderDetailPage() {
   const params = useParams()
   const [order, setOrder] = useState<AdminOrder | null>(null)
@@ -180,7 +188,7 @@ export default function AdminOrderDetailPage() {
               <CardTitle>Mode de paiement</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="capitalize">{order.payment_method === "card" ? "Carte bancaire" : order.payment_method}</p>
+              <p>{paymentMethodLabels[order.payment_method] || order.payment_method}</p>
             </CardContent>
           </Card>
         </div>
