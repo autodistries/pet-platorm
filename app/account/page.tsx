@@ -11,6 +11,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import type { Order } from "@/lib/orders"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface AccountUser {
   id: string
@@ -158,9 +170,12 @@ function OrdersTab() {
 }
 
 export default function AccountPage() {
+  const router = useRouter()
   const [user, setUser] = useState<AccountUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [deleteConfirmation, setDeleteConfirmation] = useState("")
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     fetchUserData()
@@ -211,6 +226,30 @@ export default function AccountPage() {
       alert("Erreur lors de la mise à jour. Veuillez réessayer.")
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true)
+
+    try {
+      const response = await fetch("/api/auth/delete", {
+        method: "DELETE",
+        credentials: "include",
+      })
+
+      if (response.ok) {
+        alert("Votre compte a été supprimé avec succès.")
+        router.push("/")
+      } else {
+        const errorData = await response.json()
+        alert(errorData.error || "Erreur lors de la suppression du compte")
+      }
+    } catch (error) {
+      console.error("Erreur lors de la suppression:", error)
+      alert("Erreur lors de la suppression. Veuillez réessayer.")
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -407,9 +446,44 @@ export default function AccountPage() {
                 <p className="text-sm text-muted-foreground mb-2">
                   Cette action est irréversible et supprimera définitivement votre compte.
                 </p>
-                <Button variant="destructive" size="sm">
-                  Supprimer mon compte
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" onClick={() => setDeleteConfirmation("")}>
+                      Supprimer mon compte
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Cette action est irréversible. Votre compte et toutes vos données seront définitivement
+                        supprimés de nos serveurs.
+                        <div className="mt-4">
+                          <Label htmlFor="confirm-delete" className="text-sm font-medium">
+                            Tapez <span className="font-bold text-destructive">supprimer</span> pour confirmer :
+                          </Label>
+                          <Input
+                            id="confirm-delete"
+                            value={deleteConfirmation}
+                            onChange={(e) => setDeleteConfirmation(e.target.value)}
+                            placeholder="supprimer"
+                            className="mt-2"
+                          />
+                        </div>
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annuler</AlertDialogCancel>
+                      <AlertDialogAction
+                        disabled={deleteConfirmation !== "supprimer" || isDeleting}
+                        onClick={handleDeleteAccount}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {isDeleting ? "Suppression..." : "Supprimer définitivement"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </CardContent>
           </Card>
