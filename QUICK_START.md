@@ -1,36 +1,44 @@
 # 🚀 DÉMARRAGE RAPIDE
 
-## Première utilisation
+## 1. Préparer l'environnement
 
-```powershell
-# 1. Installer Docker Desktop
-# https://www.docker.com/products/docker-desktop/
-
-# 2. Lancer tout automatiquement
-.\start.ps1
+```bash
+# Copier le fichier d'exemple et le personnaliser
+cp .env.example .env.local
 ```
 
-## Utilisation quotidienne
+Modifiez ensuite `.env.local` pour y placer votre `MONGODB_URI`, le nom de base (`MONGODB_DB_NAME`) et un `JWT_SECRET`.
 
-```powershell
-.\start.ps1
+## 2. Installer les dépendances
+
+```bash
+pnpm install
 ```
 
-C'est tout ! 🎉
+## 3. (Optionnel) Pré-remplir la base
+
+```bash
+pnpm run seed:mongodb
+```
+
+Le script importe les catégories, produits et comptes de test pour gagner du temps.
+
+## 4. Lancer l'application
+
+```bash
+pnpm run dev
+```
+
+Le front-office est accessible sur **http://localhost:8080**.
 
 ---
 
-## 🔐 Connexion
+## 🔐 Comptes de démonstration
 
-### Admin
-- **URL**: http://localhost:3000/auth/login
-- **Email**: `admin@petshop.com`
-- **Password**: `Admin123!`
-- **Accès**: `/admin` (tableau de bord)
+- **Admin** : `admin@petshop.com` • `Admin123!` → accès `/admin`
+- **Client** : `marie.dubois@email.com` • `Marie123!`
 
-### Client
-- **Email**: `marie.dubois@email.com`
-- **Password**: `Marie123!`
+> Si vous partez d'une base MongoDB vide, créez vos propres comptes via `/auth/register` ou en insérant des documents dans la collection `customers`.
 
 ---
 
@@ -38,33 +46,28 @@ C'est tout ! 🎉
 
 | Commande | Action |
 |----------|--------|
-| `.\start.ps1` | Démarre tout (DB + serveur) |
-| `pnpm run dev` | Serveur uniquement |
-| `pnpm run db:start` | Base de données uniquement |
-| `pnpm run db:stop` | Arrêter la DB |
-| `pnpm run db:reset` | Tout réinitialiser ⚠️ |
+| `pnpm run dev` | Lancer le serveur Next.js en mode dev |
+| `pnpm run build` | Construire la version production |
+| `pnpm run start` | Servir la version production |
+| `pnpm run lint` | Vérifier la qualité du code |
+| `pnpm run seed:mongodb` | Synchroniser les données de démonstration |
 
 ---
 
-## 🐛 Problèmes courants
+## 🐛 Dépannage rapide
 
-### "Docker n'est pas reconnu"
-➡️ Installez Docker Desktop et redémarrez
+### Erreur de connexion MongoDB
+- Vérifiez la valeur de `MONGODB_URI`
+- Assurez-vous que votre IP est autorisée (MongoDB Atlas)
+- Confirmez que `MONGODB_DB_NAME` correspond à une base existante
 
-### "ECONNREFUSED" dans le navigateur
-```powershell
-pnpm run db:restart
-```
-
-### Tout réinitialiser
-```powershell
-pnpm run db:reset
-pnpm run dev
-```
+### Page blanche / données manquantes
+- Créez des catégories et des produits via `/admin`
+- Réimportez vos données seed dans MongoDB
 
 ---
 
-## 📖 Documentation complète
+## 📖 Aller plus loin
 
-- `SETUP_DATABASE.md` - Guide complet de la base de données
-- `README.md` - Documentation du projet
+- `SETUP_DATABASE.md` : configuration détaillée de MongoDB et organisation des collections
+- `README.md` : documentation complète du projet

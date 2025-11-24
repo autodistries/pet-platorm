@@ -1,204 +1,117 @@
+git clone https://github.com/autodistries/pet-platorm.git
 # 🍎 Guide d'installation macOS
 
-Ce projet est **100% compatible macOS** !
+Ce guide décrit comment exécuter Pet Platform sur macOS (Intel ou Apple Silicon) avec la nouvelle stack MongoDB.
 
-## 📋 Prérequis macOS
+## 📋 Prérequis
 
-### 1. Installer Homebrew (si pas déjà fait)
+### Homebrew (optionnel mais conseillé)
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-### 2. Installer Node.js et pnpm
+### Node.js & pnpm
 
 ```bash
-# Installer Node.js
 brew install node
-
-# Installer pnpm
-npm install -g pnpm
-
-# Ou directement via Homebrew
-brew install pnpm
+npm install -g pnpm  # ou brew install pnpm
 ```
 
-### 3. Installer Docker Desktop
+> Préférez `nvm` si vous gérez plusieurs versions de Node : `brew install nvm && nvm install --lts`.
 
-**Option 1 : Via le site (recommandé)**
-1. Téléchargez Docker Desktop pour Mac : https://www.docker.com/products/docker-desktop/
-2. Installez le fichier `.dmg`
-3. Lancez Docker Desktop
+### MongoDB
 
-**Option 2 : Via Homebrew**
+Deux options s'offrent à vous :
+
+1. **MongoDB Atlas** → aucune installation locale, recommandé.
+2. **MongoDB local** → installez la Community Edition.
+
+#### Installer MongoDB Community Edition
+
 ```bash
-brew install --cask docker
+brew tap mongodb/brew
+brew install mongodb-community@7.0
+brew services start mongodb-community@7.0
+```
+
+Pour les transactions (commandes), activez un replica set :
+
+```bash
+mongosh --eval 'rs.initiate({_id:"rs0", members:[{_id:0, host:"127.0.0.1:27017"}]})'
 ```
 
 ## 🚀 Installation du projet
 
-### 1. Cloner le projet
 ```bash
-cd ~/Documents  # ou votre dossier préféré
-git clone https://github.com/autodistries/pet-platorm.git
+cd ~/Documents  # dossier de votre choix
+
 cd pet-platorm
-```
-
-### 2. Installer les dépendances
-```bash
 pnpm install
+cp .env.example .env.local
 ```
 
-### 3. Rendre le script de démarrage exécutable
-```bash
-chmod +x start.sh
+Modifiez `.env.local` pour y placer votre URI MongoDB :
+
+```env
+MONGODB_URI=mongodb://127.0.0.1:27017/?replicaSet=rs0
+MONGODB_DB_NAME=pet-platform
+JWT_SECRET=change-me-in-production
 ```
 
-### 4. Lancer le projet
-```bash
-./start.sh
-```
-
-C'est tout ! 🎉
-
-## 🔧 Commandes macOS
-
-Les mêmes commandes que Linux fonctionnent :
+## ▶️ Démarrer
 
 ```bash
-# Lancer tout
-./start.sh
-
-# Démarrer seulement la DB
-pnpm run db:start
-
-# Démarrer seulement Next.js
-pnpm run dev
-
-# Réinitialiser la DB
-pnpm run db:reset
+pnpm run dev       # mode développement
+pnpm run build     # build production
+pnpm run start     # serveur production
+pnpm run lint      # vérification lint
 ```
 
-## 🐛 Dépannage macOS
+Le site répond sur **http://localhost:8080**.
 
-### Docker Desktop ne démarre pas
+## 🔧 Astuces macOS
 
-**Solution :**
-```bash
-# Réinitialiser Docker Desktop
-# Applications > Docker > Quit Docker Desktop
-# Puis relancer depuis Applications
-```
+- Sur Apple Silicon, les dépendances Node/MongoDB fonctionnent nativement (pas besoin de Rosetta).
+- `brew services list` permet de vérifier si MongoDB est bien démarré.
+- Pour arrêter MongoDB géré par Homebrew : `brew services stop mongodb-community@7.0`.
 
-### Port 5432 déjà utilisé
+## 🐛 Dépannage
 
-**Solution :**
-```bash
-# Voir ce qui utilise le port
-sudo lsof -i :5432
+### `ECONNREFUSED` lors de l'accès à MongoDB
+- Vérifiez que le service MongoDB est démarré (`brew services list`).
+- Si vous utilisez Atlas, autorisez votre IP et vérifiez le mot de passe.
+- Confirmez que `MONGODB_DB_NAME` correspond à la base attendue.
 
-# Si PostgreSQL local tourne
-brew services stop postgresql
-
-# Ou modifier le port dans docker-compose.yml
-```
-
-### Rosetta 2 (Apple Silicon M1/M2/M3)
-
-Docker Desktop nécessite Rosetta 2 sur Apple Silicon :
+### App vide (pas de produits)
+- Ajoutez des catégories/produits via `/admin`.
+- Importez vos données avec `mongoimport` :
 
 ```bash
-# Installer Rosetta 2
-softwareupdate --install-rosetta
+mongoimport --uri "$MONGODB_URI" --db "$MONGODB_DB_NAME" --collection products --file ./data/products.json --jsonArray
 ```
 
-### Permission refusée pour start.sh
+### Erreurs de certificats (Atlas)
+- Assurez-vous d'utiliser une URI `mongodb+srv://`.
+- Ajoutez `tls=true` ou `retryWrites=true&w=majority` si nécessaire.
 
-```bash
-chmod +x start.sh
-./start.sh
-```
+## 🧰 Outils utiles
 
-## 🎯 Spécificités macOS
-
-### Architecture Apple Silicon
-
-Sur les Mac M1/M2/M3, Docker utilise l'architecture ARM64.
-Le projet fonctionne parfaitement, mais certaines images Docker peuvent être plus lentes (émulation x86).
-
-Notre configuration utilise `postgres:16-alpine` qui supporte ARM64 nativement ✅
-
-### Paths macOS
-
-```bash
-# Fichiers de configuration
-~/.docker/config.json
-
-# Base de données locale (si installée)
-/usr/local/var/postgresql@16
-
-# Logs Docker Desktop
-~/Library/Containers/com.docker.docker/Data/log/
-```
-
-## 💡 Alternatives macOS
-
-### PostgreSQL natif avec Homebrew
-
-```bash
-# Installer PostgreSQL
-brew install postgresql@16
-
-# Démarrer PostgreSQL
-brew services start postgresql@16
-
-# Créer la base de données
-createdb pet_accessories_db
-psql pet_accessories_db
-
-# Dans psql :
-CREATE USER petadmin WITH PASSWORD 'petpassword123';
-GRANT ALL PRIVILEGES ON DATABASE pet_accessories_db TO petadmin;
-\q
-
-# Exécuter le script d'initialisation
-psql -U petadmin -d pet_accessories_db -f scripts/init-db.sql
-```
-
-**Modifier .env.local :**
-```bash
-DATABASE_URL=postgresql://petadmin:petpassword123@localhost:5432/pet_accessories_db
-```
-
-### Postgres.app (GUI)
-
-Alternative graphique pour macOS :
-1. Téléchargez Postgres.app : https://postgresapp.com/
-2. Lancez l'application
-3. Créez une base de données `pet_accessories_db`
-4. Importez `scripts/init-db.sql`
-
-## 🔧 Outils recommandés macOS
-
-### Gestionnaires de base de données
-- **Postico** (https://eggerapps.at/postico/) - Interface graphique élégante
-- **TablePlus** (https://tableplus.com/) - Multi-DB client
-- **pgAdmin** (via Homebrew : `brew install --cask pgadmin4`)
-
-### Éditeurs de code
 - **VS Code** : `brew install --cask visual-studio-code`
-- **Cursor** : https://cursor.sh/
-- **WebStorm** : `brew install --cask webstorm`
+- **TablePlus** / **MongoDB Compass** pour explorer la base
+- **iTerm2** + **oh-my-zsh** pour un terminal amélioré
 
-### Terminal amélioré
 ```bash
-# Installer iTerm2
+brew install --cask mongodb-compass
 brew install --cask iterm2
-
-# Installer oh-my-zsh
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 ```
 
+## 📚 Pour aller plus loin
+
+- [README](README.md)
+- [Guide base de données](SETUP_DATABASE.md)
+- [Guide Linux](LINUX.md) pour la configuration côté serveur
 ## 📊 Performance macOS
 
 ### Apple Silicon (M1/M2/M3)

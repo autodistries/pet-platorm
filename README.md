@@ -8,156 +8,111 @@
 
 ## 📋 Prérequis
 
-- **Node.js** (v18 ou supérieur)
-- **pnpm** (gestionnaire de paquets)
-- **Docker Desktop** (pour la base de données PostgreSQL)
+- **Node.js** v18 (ou supérieur)
+- **pnpm** pour gérer les dépendances
+- **Instance MongoDB** (Atlas ou auto-hébergée)
+
+> ℹ️ L'application n'utilise plus Docker ni PostgreSQL. Assurez-vous simplement d'avoir une URI MongoDB valide.
 
 ## 🚀 Installation
 
 ### 1. Installer les dépendances
 
-```powershell
+```bash
 pnpm install
 ```
 
-### 2. Configurer la base de données
+### 2. Configurer les variables d'environnement
 
-#### Option A : Avec Docker (Recommandé) ⭐
+Créez un fichier `.env.local` (ou copiez `.env.example`) avec votre connexion MongoDB :
 
-```powershell
-# Démarrer PostgreSQL avec Docker
-docker-compose up -d
-
-# Vérifier que le conteneur est en cours d'exécution
-docker ps
+```env
+MONGODB_URI=mongodb+srv://username:password@cluster.example.mongodb.net/?retryWrites=true&w=majority
+MONGODB_DB_NAME=pet-platform
+JWT_SECRET=change-me-in-production
 ```
 
-La base de données sera automatiquement initialisée avec :
-- ✅ Toutes les tables créées
-- ✅ Catégories de produits
-- ✅ Produits d'exemple
-- ✅ Comptes utilisateurs de test
+- `MONGODB_URI` : URI complète vers votre cluster MongoDB
+- `MONGODB_DB_NAME` : nom de la base à utiliser dans le cluster
+- `JWT_SECRET` : secret utilisé pour signer les tokens d'authentification
 
-#### Option B : PostgreSQL local
+### 3. (Optionnel) Pré-remplir la base de données
 
-Si vous préférez installer PostgreSQL directement sur Windows :
-
-1. Téléchargez PostgreSQL depuis https://www.postgresql.org/download/windows/
-2. Créez une base de données `pet_accessories_db`
-3. Exécutez le script `scripts/init-db.sql`
-
-### 3. Variables d'environnement
-
-Le fichier `.env.local` est déjà configuré avec les bonnes valeurs pour Docker.
-
-## 🎮 Utilisation
-
-### Windows
-```powershell
-# Lancer le serveur de développement
-pnpm run dev
-```
-
-### Linux / macOS
 ```bash
-# Lancer le serveur de développement
+pnpm run seed:mongodb
+```
+
+Le script importe les catégories, produits et comptes de démonstration historiques en s'appuyant sur `MONGODB_URI` / `MONGODB_DB_NAME`.
+
+### 4. Lancer le serveur de développement
+
+```bash
 pnpm run dev
 ```
 
-Le site sera accessible sur : **http://localhost:3000**
+L'application est accessible sur **http://localhost:8080** (port configuré dans `package.json`).
 
 ## 👤 Comptes de test
 
-### Compte Administrateur
-- **Email** : `admin@petshop.com`
-- **Mot de passe** : `Admin123!`
-- **Accès** : Tableau de bord admin sur `/admin`
+### Administrateur
+- Email : `admin@petshop.com`
+- Mot de passe : `Admin123!`
+- Accès : `/admin`
 
-### Compte Client
-- **Email** : `marie.dubois@email.com`
-- **Mot de passe** : `Marie123!`
-- **Accès** : Espace client standard
+### Client
+- Email : `marie.dubois@email.com`
+- Mot de passe : `Marie123!`
+- Accès : `/account`
+
+> 💡 Si votre base MongoDB est vide, vous pouvez créer des comptes directement via l'interface d'inscription ou en insérant vos propres documents.
 
 ## 📦 Commandes utiles
 
-### Windows (PowerShell)
-```powershell
-# Arrêter la base de données
-docker-compose down
-
-# Redémarrer la base de données (données conservées)
-docker-compose restart
-
-# Réinitialiser complètement la base de données
-docker-compose down -v
-docker-compose up -d
-
-# Voir les logs de la base de données
-docker-compose logs postgres
-
-# Se connecter à PostgreSQL
-docker exec -it pet-platform-db psql -U petadmin -d pet_accessories_db
-```
-
-### Linux / macOS (Bash)
 ```bash
-# Arrêter la base de données
-docker-compose down
+# Lancer le serveur Next.js en développement
+pnpm run dev
 
-# Redémarrer la base de données (données conservées)
-docker-compose restart
+# Construire pour la production
+pnpm run build
 
-# Réinitialiser complètement la base de données
-docker-compose down -v && docker-compose up -d
+# Démarrer en mode production
+pnpm run start
 
-# Voir les logs de la base de données
-docker-compose logs postgres
+# Linter le projet
+pnpm run lint
 
-# Se connecter à PostgreSQL
-docker exec -it pet-platform-db psql -U petadmin -d pet_accessories_db
+# Synchroniser les jeux de données de démonstration
+pnpm run seed:mongodb
 ```
 
-## 🗂️ Structure de la base de données
+## 🗂️ Collections MongoDB principales
 
-- **customers** : Utilisateurs (clients et admins)
-- **categories** : Catégories de produits
-- **products** : Catalogue de produits
-- **carts** / **cart_items** : Paniers d'achat
-- **orders** / **order_items** : Commandes
-- **payments** : Paiements
-- **shipments** : Livraisons
-- **support_tickets** / **support_messages** : Support client
+- `customers` : comptes utilisateurs (clients et administrateurs)
+- `products` : catalogue des produits
+- `categories` : catégories du catalogue
+- `carts` : paniers des utilisateurs avec leurs articles
+- `orders` : commandes et détails des articles commandés
+- `payments` : informations de paiement associées aux commandes
+- `contact_messages` : messages envoyés via le formulaire de contact
+- `newsletter_subscriptions` : abonnements à la newsletter
 
 ## 🛠️ Développement
 
-### Tous les OS
 ```bash
-# Build production
-pnpm run build
-
-# Lancer en production
-pnpm run start
-
-# Linter
+# Vérifier la base de code
 pnpm run lint
+
+# Construire la version production
+pnpm run build
 ```
 
-### Scripts de démarrage rapide
+## 📄 Notes diverses
 
-**Windows:**
-```powershell
-.\start.ps1
-```
+- Les anciens scripts Docker/PostgreSQL ont été retirés.
+- Les scripts SQL dans `scripts/` sont conservés à titre historique ; ils ne sont plus utilisés par l'application.
+- Consultez `SETUP_DATABASE.md` pour un guide détaillé de configuration MongoDB.
 
-**Linux/macOS:**
-```bash
-chmod +x start.sh  # Première fois uniquement
-./start.sh
-```
-
-# lIvrables
-
-Pour render un document .md, allez sur https://codimd.go.tulsacounty.org/new et collez le contenu du document dedans
+Pour prévisualiser un document `.md`, rendez-vous sur https://codimd.go.tulsacounty.org/new et collez le contenu.
 
 qsdjfhkjdpjqkdrjlwdlWLxlvsqio
 

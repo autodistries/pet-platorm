@@ -1,36 +1,17 @@
-# ✅ Setup PostgreSQL - TERMINÉ !
+# 🐾 Notes internes (MongoDB)
 
-## 🐳 Avec Docker (Recommandé)
+- ✅ Migration complète vers MongoDB Atlas / MongoDB Community.
+- 🆕 Script de seed : `pnpm run seed:mongodb` (lit `MONGODB_URI` et importe les données historiques).
+- 📄 Documentation à jour : `SETUP_DATABASE.md`, `README.md`, `LINUX.md`, `MACOS.md`.
+- 🔐 Comptes de test conservés :
+	- Admin · `admin@petshop.com` · `Admin123!`
+	- Client · `marie.dubois@email.com` · `Marie123!`
+- 🧪 Pour vérifier la connexion :
 
-```powershell
-# Démarrage rapide
-.\start.ps1
-
-# Ou manuellement
-pnpm run db:start
+```bash
+mongosh "$MONGODB_URI" --eval 'db.runCommand({ ping: 1 })'
 pnpm run dev
 ```
 
-## 🔐 Comptes disponibles
-
-**Admin:**
-- Email: `admin@petshop.com`
-- Password: `Admin123!`
-
-**Client:**
-- Email: `marie.dubois@email.com`
-- Password: `Marie123!`
-
-## 📚 Documentation
-
-- Voir `SETUP_DATABASE.md` pour le guide complet
-- Voir `README.md` pour les instructions d'installation
-
-## 🛠️ Commandes utiles
-
-```powershell
-pnpm run db:start    # Démarre PostgreSQL
-pnpm run db:stop     # Arrête PostgreSQL
-pnpm run db:reset    # Réinitialise la DB
-pnpm run db:logs     # Voir les logs
-```
+- 📬 Collections alimentées automatiquement : `categories`, `products`, `customers`.
+- 📌 Les anciens scripts SQL (`scripts/*.sql`) sont archivés pour référence uniquement.

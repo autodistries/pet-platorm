@@ -25,39 +25,35 @@ Guide spécifique pour Linux (Ubuntu, Fedora, Arch, etc.)
 
 ### 3. [SETUP_DATABASE.md](./SETUP_DATABASE.md) ⭐ **RECOMMANDÉ**
 **⏱️ 10 minutes**  
-Guide complet de configuration de PostgreSQL avec Docker.  
+Guide complet pour connecter MongoDB (Atlas ou local), créer un replica set et lancer le projet.  
 Inclut :
 - ✅ Installation pas à pas
-- ✅ Commandes Docker
-- ✅ Dépannage
-- ✅ Gestion des mots de passe
+- ✅ Configuration des variables `MONGODB_URI` / `MONGODB_DB_NAME`
+- ✅ Script de seed (`pnpm run seed:mongodb`)
+- ✅ Dépannage Atlas / local
 - ✅ Comptes de test
-- ✅ Connexion à la base
 
 👉 **Lisez ceci pour tout comprendre sur la base de données**
 
 ### 4. [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md)
-**⏱️ 15 minutes**  
-Architecture détaillée de la base de données avec diagrammes.  
+**⏱️ 12 minutes**  
+Cartographie des collections MongoDB et relations fonctionnelles.  
 Inclut :
-- 📊 Diagramme des relations
-- 📋 Description de chaque table
-- 🔑 Contraintes et index
-- 💡 Exemples de requêtes SQL
-- 📈 Optimisations
+- 📊 Diagramme des collections
+- 📋 Description de chaque collection & champs clés
+- 🔑 Index suggérés
+- 💡 Exemples de requêtes MongoDB Aggregation
 
 👉 **Pour comprendre la structure des données**
 
 ### 5. [ALTERNATIVES_DB.md](./ALTERNATIVES_DB.md)
-**⏱️ 8 minutes**  
-Solutions alternatives si Docker ne fonctionne pas.  
-Options :
-- 🌐 Supabase (cloud gratuit)
-- 💻 PostgreSQL local
-- 🐘 ElephantSQL
-- 🔧 Neon
+**⏱️ 5 minutes**  
+Panorama des déploiements MongoDB (Atlas, Docker Community Edition, hébergement managé).  
+- ☁️ Atlas (starter gratuit)
+- 🖥️ MongoDB Community locale (replica set)
+- 🐳 Images officielles Docker
 
-👉 **Si Docker ne marche pas sur votre machine**
+👉 **Choisissez l'infrastructure MongoDB adaptée à votre contexte**
 
 ---
 
@@ -71,18 +67,18 @@ Historique des commandes et notes de développement.
 ## 🛠️ Fichiers techniques
 
 ### Scripts de base de données
-- **scripts/init-db.sql** - Script d'initialisation complet
-- **scripts/01-create-tables.sql** - Création des tables (ancien)
-- **scripts/02-seed-data.sql** - Données de test (ancien)
-- **scripts/migration-add-admin.sql** - Migration pour ajouter les admins
+- **scripts/seed-mongodb.js** - Peuplement des collections (MongoDB)
 - **scripts/generate-hashes.js** - Générateur de hash bcrypt
+- **scripts/01-create-tables.sql** - Ancien schéma PostgreSQL (archive)
+- **scripts/02-seed-data.sql** - Données de test PostgreSQL (archive)
+- **scripts/migration-add-admin.sql** - Migration PostgreSQL (archive)
 
 ### Configuration
-- **docker-compose.yml** - Configuration PostgreSQL
 - **.env.local** - Variables d'environnement (local)
 - **.env.example** - Template des variables
 - **middleware.ts** - Protection des routes admin
-- **start.ps1** - Script de démarrage automatique
+- **next.config.mjs** - Configuration Next.js
+- **app/layout.tsx** - Layout principal
 
 ---
 
@@ -105,7 +101,7 @@ Historique des commandes et notes de développement.
 ### Problèmes techniques
 ```
 1. SETUP_DATABASE.md (section Dépannage)
-2. ALTERNATIVES_DB.md   → Si Docker ne marche pas
+2. ALTERNATIVES_DB.md   → Choisir un autre hébergement MongoDB
 3. README.md (Commandes utiles)
 ```
 
@@ -120,7 +116,7 @@ Historique des commandes et notes de développement.
 → [SETUP_DATABASE.md](./SETUP_DATABASE.md)  
 → [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md)
 
-### "Docker ne fonctionne pas chez moi"
+### "Je veux un autre hébergement MongoDB"
 → [ALTERNATIVES_DB.md](./ALTERNATIVES_DB.md)
 
 ### "Je veux voir les comptes de test"
@@ -144,7 +140,7 @@ Historique des commandes et notes de développement.
 **Admin**
 - Email: `admin@petshop.com`
 - Password: `Admin123!`
-- URL: http://localhost:3000/admin
+- URL: http://localhost:8080/admin
 
 **Client**
 - Email: `marie.dubois@email.com`
@@ -152,48 +148,48 @@ Historique des commandes et notes de développement.
 
 ### 🌐 URLs importantes
 
-- Site web: http://localhost:3000
-- Login: http://localhost:3000/auth/login
-- Admin: http://localhost:3000/admin
-- Base de données: localhost:5432
+- Site web: http://localhost:8080
+- Login: http://localhost:8080/auth/login
+- Admin: http://localhost:8080/admin
+- MongoDB: valeur de `MONGODB_URI`
 
 ### ⚡ Commandes rapides
 
-```powershell
-# Tout démarrer
-.\start.ps1
-
-# Juste la base de données
-pnpm run db:start
-
-# Juste le serveur
+```bash
+# Lancer le serveur de développement
 pnpm run dev
 
-# Réinitialiser la base
-pnpm run db:reset
+# Peupler la base de démonstration
+pnpm run seed:mongodb
+
+# Construire la version production
+pnpm run build
+
+# Vérifier la qualité du code
+pnpm run lint
 ```
 
 ---
 
 ## 🆘 En cas de problème
 
-1. **Lisez d'abord** [SETUP_DATABASE.md](./SETUP_DATABASE.md) section Dépannage
-2. **Vérifiez** que Docker Desktop est installé et démarré
-3. **Essayez** de réinitialiser : `pnpm run db:reset`
-4. **Sinon** essayez une [alternative](./ALTERNATIVES_DB.md)
+1. **Consultez** [SETUP_DATABASE.md](./SETUP_DATABASE.md) (section Dépannage)
+2. **Contrôlez** votre connexion MongoDB : `mongosh "$MONGODB_URI" --eval 'db.runCommand({ ping: 1 })'`
+3. **Regénérez** les collections si besoin : `pnpm run seed:mongodb`
+4. **Changez d'hébergement** via [ALTERNATIVES_DB.md](./ALTERNATIVES_DB.md)
 
 ---
 
 ## 📊 Statistiques de la documentation
 
 - **5 guides** de documentation
-- **10 fichiers** de configuration
-- **5 scripts** SQL/JavaScript
+- **8 fichiers** de configuration
+- **5 scripts** (1 MongoDB, 4 historiques)
 - **2 comptes** de test préconfigurés
-- **4 alternatives** à Docker
+- **3 options d'hébergement MongoDB**
 
 ---
 
-**Dernière mise à jour** : Configuration initiale de la base de données  
+**Dernière mise à jour** : Migration MongoDB Atlas  
 **Auteur** : GitHub Copilot  
 **Version** : 1.0

@@ -1,4 +1,4 @@
-import db from "@/lib/db"
+import { getCollection } from "@/lib/db"
 
 export interface AdminStats {
   total_orders: number
@@ -25,116 +25,234 @@ export interface TopProduct {
   revenue: number
 }
 
-// Mock admin functions (replace with actual database calls)
+interface ProductDocument {
+  id: string
+  name: string
+  price: number
+  stock_quantity: number
+  category_id?: string
+  is_active: boolean
+  image_url: string
+  created_at: string
+}
+
+interface CategoryDocument {
+  id: string
+  name: string
+}
+
+interface OrderDocument {
+  id: string
+  user_id: string
+  status: string
+  total_amount: number
+  created_at: string
+  payment_method: string
+  items: Array<{
+    product_id: string
+    product_name: string
+    product_image: string
+    quantity: number
+    total_price: number
+  }>
+}
+
+interface CustomerDocument {
+  id: string
+  name?: string
+  email?: string
+}
+
+async function productsCollection() {
+  return getCollection<ProductDocument>("products")
+}
+
+async function categoriesCollection() {
+  return getCollection<CategoryDocument>("categories")
+}
+
+async function ordersCollection() {
+  return getCollection<OrderDocument>("orders")
+}
+
+async function customersCollection() {
+  return getCollection<CustomerDocument>("customers")
+}
+
 export async function getAdminStats(): Promise<AdminStats> {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  const [ordersCol, productsCol, customersCol] = await Promise.all([
+    ordersCollection(),
+    productsCollection(),
+    customersCollection(),
+  ])
+
+  const startOfDay = new Date()
+  startOfDay.setHours(0, 0, 0, 0)
+  const startOfDayIso = startOfDay.toISOString()
+
+  const [
+    totalOrders,
+    ordersToday,
+    pendingOrders,
+    totalCustomers,
+    totalProducts,
+    lowStockProducts,
+    totalRevenueAgg,
+    revenueTodayAgg,
+  ] = await Promise.all([
+    ordersCol.countDocuments(),
+    ordersCol.countDocuments({ created_at: { $gte: startOfDayIso } }),
+    ordersCol.countDocuments({ status: "pending" }),
+    customersCol.countDocuments(),
+    productsCol.countDocuments(),
+    productsCol.countDocuments({ stock_quantity: { $lte: 5 }, is_active: true }),
+    ordersCol
+      .aggregate<{ total: number }>([
+        { $group: { _id: null, total: { $sum: "$total_amount" } } },
+      ])
+      .next(),
+    ordersCol
+      .aggregate<{ total: number }>([
+        { $match: { created_at: { $gte: startOfDayIso } } },
+        { $group: { _id: null, total: { $sum: "$total_amount" } } },
+      ])
+      .next(),
+  ])
 
   return {
-    total_orders: 1247,
-    total_revenue: 45678.9,
-    total_customers: 892,
-    total_products: 156,
-    orders_today: 23,
-    revenue_today: 1234.56,
-    pending_orders: 8,
-    low_stock_products: 5,
+    total_orders: totalOrders,
+    total_revenue: totalRevenueAgg?.total ?? 0,
+    total_customers: totalCustomers,
+    total_products: totalProducts,
+    orders_today: ordersToday,
+    revenue_today: revenueTodayAgg?.total ?? 0,
+    pending_orders: pendingOrders,
+    low_stock_products: lowStockProducts,
   }
 }
 
 export async function getSalesData(days = 30): Promise<SalesData[]> {
-  // Generate mock sales data for the last N days
-  const data: SalesData[] = []
-  const today = new Date()
+  const ordersCol = await ordersCollection()
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - (days - 1))
+  cutoff.setHours(0, 0, 0, 0)
 
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(today)
-    date.setDate(date.getDate() - i)
+  const results = await ordersCol
+    .aggregate<{
+      _id: string
+      revenue: number
+      orders: number
+    }>([
+      { $match: { created_at: { $gte: cutoff.toISOString() } } },
+      {
+        $addFields: {
+          createdDate: { $dateFromString: { dateString: "$created_at" } },
+        },
+      },
+      {
+        $group: {
+          _id: { $dateToString: { date: "$createdDate", format: "%Y-%m-%d" } },
+          revenue: { $sum: "$total_amount" },
+          orders: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ])
+    .toArray()
 
-    data.push({
-      date: date.toISOString().split("T")[0],
-      revenue: Math.random() * 2000 + 500,
-      orders: Math.floor(Math.random() * 50) + 10,
-    })
-  }
-
-  return data
+  return results.map((item: { _id: string; revenue: number; orders: number }) => ({
+    date: item._id,
+    revenue: item.revenue,
+    orders: item.orders,
+  }))
 }
 
-export async function getTopProducts(): Promise<TopProduct[]> {
-  return [
-    {
-      id: "prod_1",
-      name: "Collier en Cuir Premium",
-      image: "/premium-leather-dog-collar.jpg",
-      sales: 156,
-      revenue: 4674.44,
-    },
-    {
-      id: "prod_2",
-      name: "Jouet Interactif pour Chat",
-      image: "/interactive-cat-toy.png",
-      sales: 134,
-      revenue: 2678.66,
-    },
-    {
-      id: "prod_3",
-      name: "Lit Orthopédique pour Chien",
-      image: "/orthopedic-dog-bed.png",
-      sales: 89,
-      revenue: 3560.0,
-    },
-    {
-      id: "prod_4",
-      name: "Gamelle Anti-Glouton",
-      image: "/slow-feeder-dog-bowl.jpg",
-      sales: 78,
-      revenue: 1560.0,
-    },
-  ]
+export async function getTopProducts(limit = 4): Promise<TopProduct[]> {
+  const ordersCol = await ordersCollection()
+
+  const results = await ordersCol
+    .aggregate<{ _id: string; name: string; image: string; sales: number; revenue: number }>([
+      { $unwind: "$items" },
+      {
+        $group: {
+          _id: "$items.product_id",
+          name: { $first: "$items.product_name" },
+          image: { $first: "$items.product_image" },
+          sales: { $sum: "$items.quantity" },
+          revenue: { $sum: "$items.total_price" },
+        },
+      },
+      { $sort: { sales: -1 } },
+      { $limit: limit },
+    ])
+    .toArray()
+
+  return results.map((item: { _id: string; name: string; image: string; sales: number; revenue: number }) => ({
+    id: item._id,
+    name: item.name,
+    image: item.image || "/placeholder.svg",
+    sales: item.sales,
+    revenue: item.revenue,
+  }))
 }
 
 export async function getAllOrders(): Promise<any[]> {
-  const result = await db.query(
-    `SELECT o.id, o.total_amount, o.status, o.created_at,
-            c.name as customer_name,
-            c.email as customer_email,
-            COUNT(oi.id) as items_count
-     FROM orders o
-     LEFT JOIN customers c ON o.customer_id = c.id
-     LEFT JOIN order_items oi ON o.id = oi.order_id
-     GROUP BY o.id, c.name, c.email
-     ORDER BY o.created_at DESC
-     LIMIT 50`
+  const [ordersCol, customersCol] = await Promise.all([ordersCollection(), customersCollection()])
+
+  const customers = await customersCol
+    .find({}, { projection: { id: 1, name: 1, email: 1 } })
+    .toArray()
+  const customerMap = new Map<string, CustomerDocument>(
+    customers.map((customer: CustomerDocument) => [customer.id, customer])
   )
 
-  return result.rows.map((row: any) => ({
-    id: row.id,
-    customer_name: row.customer_name || 'Utilisateur inconnu',
-    customer_email: row.customer_email || 'N/A',
-    status: row.status,
-    total_amount: parseFloat(row.total_amount),
-    created_at: row.created_at,
-    items_count: parseInt(row.items_count) || 0,
-  }))
+  const orders = await ordersCol
+    .find()
+    .sort({ created_at: -1 })
+    .limit(50)
+    .toArray()
+
+  return orders.map((order: OrderDocument) => {
+    const customer = customerMap.get(order.user_id)
+    return {
+      id: order.id,
+      customer_name: customer?.name ?? "Utilisateur inconnu",
+      customer_email: customer?.email ?? "N/A",
+      status: order.status,
+      total_amount: order.total_amount,
+      created_at: order.created_at,
+      items_count: order.items.length,
+    }
+  })
 }
 
 export async function getAllProducts(): Promise<any[]> {
-  const result = await db.query(
-    `SELECT p.id, p.name, p.price, p.stock_quantity as stock, 
-            c.name as category, p.is_active, p.created_at
-     FROM products p
-     LEFT JOIN categories c ON p.category_id = c.id
-     ORDER BY p.created_at DESC`
+  const [productsCol, categoriesCol] = await Promise.all([productsCollection(), categoriesCollection()])
+
+  const categories = await categoriesCol
+    .find({}, { projection: { id: 1, name: 1 } })
+    .toArray()
+  const categoryMap = new Map<string, string>(
+    categories.map((category: CategoryDocument) => [category.id, category.name])
   )
 
-  return result.rows.map((row: any) => ({
-    id: row.id,
-    name: row.name,
-    price: parseFloat(row.price),
-    stock: row.stock,
-    category: row.category || "Sans catégorie",
-    status: row.stock === 0 ? "out_of_stock" : (row.is_active ? "active" : "inactive"),
-    created_at: row.created_at,
-  }))
+  const products = await productsCol
+    .find()
+    .sort({ created_at: -1 })
+    .toArray()
+
+  return products.map((product: ProductDocument) => {
+    const categoryName = product.category_id ? categoryMap.get(product.category_id) : undefined
+    const status = product.stock_quantity === 0 ? "out_of_stock" : product.is_active ? "active" : "inactive"
+
+    return {
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      stock: product.stock_quantity,
+      category: categoryName ?? "Sans catégorie",
+      status,
+      created_at: product.created_at,
+    }
+  })
 }
