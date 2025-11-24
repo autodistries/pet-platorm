@@ -58,40 +58,60 @@ export default function PaymentPage() {
     setError("")
 
     try {
-      // Simulate payment processing delay
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      // Step 1: Create payment intent
+      const intentResponse = await fetch("/api/payments/create-intent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          amount: order.total_amount,
+          order_id: order.id,
+        }),
+      })
 
-      // Simulate 90% success rate, 10% failure
-      const isSuccess = Math.random() > 0.1
+      if (!intentResponse.ok) {
+        const errorData = await intentResponse.json()
+        throw new Error(errorData.error || "Erreur lors de la création du paiement")
+      }
 
-      if (isSuccess) {
-        // Update order status to paid
-        const response = await fetch(`/api/orders/${order.id}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            status: "confirmed",
-            payment_method: paymentMethod,
-          }),
-        })
+      const paymentIntent = await intentResponse.json()
 
-        if (response.ok) {
-          setSuccess(true)
-          setTimeout(() => {
-            router.push(`/orders/${order.id}?success=true`)
-          }, 2000)
-        } else {
-          throw new Error("Erreur lors de la mise à jour de la commande")
-        }
+      // Step 2: Confirm payment
+      const confirmResponse = await fetch("/api/payments/confirm", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          payment_intent_id: paymentIntent.id,
+          payment_method_id: "pm_card_visa", // Mock payment method
+          payment_type: paymentMethod === "paypal" ? "paypal" : "card",
+          amount: order.total_amount,
+          order_id: order.id,
+        }),
+      })
+
+      if (!confirmResponse.ok) {
+        const errorData = await confirmResponse.json()
+        throw new Error(errorData.error || "Erreur lors de la confirmation du paiement")
+      }
+
+      const result = await confirmResponse.json()
+
+      if (result.success) {
+        setSuccess(true)
+        setTimeout(() => {
+          router.push(`/orders/${order.id}?success=true`)
+        }, 2000)
       } else {
-        // Simulate payment failure
-        setError("Paiement refusé. Veuillez vérifier vos informations de paiement ou essayer une autre carte.")
+        setError(result.error || "Paiement refusé. Veuillez vérifier vos informations de paiement.")
       }
     } catch (error) {
-      setError("Erreur de connexion. Veuillez réessayer.")
+      console.error("Payment error:", error)
+      setError(error instanceof Error ? error.message : "Erreur lors du traitement du paiement. Veuillez réessayer.")
     } finally {
       setLoading(false)
     }
