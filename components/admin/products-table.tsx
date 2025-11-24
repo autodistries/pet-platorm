@@ -58,6 +58,37 @@ export default function ProductsTable({ products }: ProductsTableProps) {
     setStockDialogOpen(true)
   }
 
+  const handleDeleteProduct = async (productId: string) => {
+    if (!confirm("Êtes-vous sûr de vouloir supprimer ce produit ?")) {
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/admin/products/${productId}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        throw new Error("Erreur lors de la suppression")
+      }
+
+      setLocalProducts(prev => prev.filter(p => p.id !== productId))
+      toast({
+        title: "Produit supprimé",
+        description: "Le produit a été supprimé avec succès",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de supprimer le produit",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleUpdateStock = async () => {
     if (!selectedProduct) return
 
@@ -88,10 +119,16 @@ export default function ProductsTable({ products }: ProductsTableProps) {
         throw new Error(data.error || "Erreur lors de la mise à jour")
       }
 
-      // Mettre à jour localement
+      // Mettre à jour localement avec le nouveau statut
       setLocalProducts(prev =>
         prev.map(p =>
-          p.id === selectedProduct.id ? { ...p, stock: stockValue } : p
+          p.id === selectedProduct.id 
+            ? { 
+                ...p, 
+                stock: stockValue,
+                status: stockValue > 0 ? 'active' : 'out_of_stock'
+              } 
+            : p
         )
       )
 
@@ -156,12 +193,19 @@ export default function ProductsTable({ products }: ProductsTableProps) {
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button 
+                        <Button 
                         variant="outline" 
                         size="sm"
                         onClick={() => handleStockClick(product)}
                       >
                         Réapprovisionner
+                      </Button>
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => handleDeleteProduct(product.id)}
+                      >
+                        Supprimer
                       </Button>
                     </div>
                   </TableCell>

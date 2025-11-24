@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Separator } from "@/components/ui/separator"
 import type { CheckoutData } from "@/lib/orders"
 
@@ -35,7 +34,7 @@ export default function CheckoutPage() {
       postal_code: "",
       country: "France",
     },
-    payment_method: "card",
+    payment_method: "pending", // Sera défini sur la page de paiement
     same_as_shipping: true,
   })
 
@@ -224,26 +223,6 @@ export default function CheckoutPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Mode de paiement</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RadioGroup
-                  value={formData.payment_method}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, payment_method: value }))}
-                >
-                  <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="credit_card" id="card" />
-                      <Label htmlFor="card">Carte bancaire</Label>
-                    </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="paypal" id="paypal" />
-                    <Label htmlFor="paypal">PayPal</Label>
-                  </div>
-                </RadioGroup>
-              </CardContent>
-            </Card>
           </div>
 
           <div>

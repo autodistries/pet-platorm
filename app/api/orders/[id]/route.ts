@@ -36,7 +36,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
 
-      const { status } = await request.json()
+      const body = await request.json()
+      const { status, payment_method } = body
 
       // Await params (Next.js requires awaiting params before accessing properties)
       const { id } = (await params) as { id: string }
@@ -45,6 +46,16 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       const existing = await getOrderById(id)
       if (!existing) return NextResponse.json({ error: "Commande non trouvée" }, { status: 404 })
       if (existing.user_id !== session.id) return NextResponse.json({ error: "Accès refusé" }, { status: 403 })
+
+      // Mettre à jour le payment_method dans la table payments si fourni
+      if (payment_method) {
+        const { query } = await import("@/lib/db")
+        await query(
+          `UPDATE payments SET payment_method = $1, updated_at = CURRENT_TIMESTAMP 
+           WHERE order_id = $2`,
+          [payment_method, id]
+        )
+      }
 
       const order = await updateOrderStatus(id, status)
 

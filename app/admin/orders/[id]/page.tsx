@@ -5,22 +5,62 @@ import { useParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import type { Order } from "@/lib/orders"
 import Link from "next/link"
+
+// Type étendu pour l'admin avec les informations client
+interface AdminOrder extends Order {
+  customer_name: string
+  customer_email: string
+}
+
+const statusColors = {
+  pending: "bg-yellow-100 text-yellow-800",
+  confirmed: "bg-blue-100 text-blue-800",
+  processing: "bg-purple-100 text-purple-800",
+  shipped: "bg-orange-100 text-orange-800",
+  delivered: "bg-green-100 text-green-800",
+  cancelled: "bg-red-100 text-red-800",
+}
+
+const statusLabels = {
+  pending: "En attente",
+  confirmed: "Confirmée",
+  processing: "En préparation",
+  shipped: "Expédiée",
+  delivered: "Livrée",
+  cancelled: "Annulée",
+}
+
+const paymentMethodLabels: Record<string, string> = {
+  credit_card: "Carte bancaire",
+  card: "Carte bancaire",
+  paypal: "PayPal",
+  bank_transfer: "Virement bancaire",
+  pending: "En attente",
+}
 
 export default function AdminOrderDetailPage() {
   const params = useParams()
-  const [order, setOrder] = useState<any | null>(null)
+  const [order, setOrder] = useState<AdminOrder | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (params?.id) fetchOrder(params.id as string)
+    if (params?.id) {
+      fetchOrder(params.id as string)
+    }
   }, [params?.id])
 
   const fetchOrder = async (id: string) => {
     try {
       const res = await fetch(`/api/admin/orders/${id}`, { credentials: "include" })
-      if (res.ok) setOrder(await res.json())
-      else console.error("Failed to load admin order", await res.text())
+      if (res.ok) {
+        const data = await res.json()
+        setOrder(data)
+      } else {
+        console.error("Failed to load admin order", await res.text())
+      }
     } catch (err) {
       console.error(err)
     } finally {
@@ -28,36 +68,137 @@ export default function AdminOrderDetailPage() {
     }
   }
 
-  if (loading) return <div className="container mx-auto px-4 py-8">Chargement...</div>
-  if (!order) return <div className="container mx-auto px-4 py-8">Commande introuvable</div>
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">Chargement de la commande...</div>
+      </div>
+    )
+  }
+
+  if (!order) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Commande non trouvée</h1>
+          <Button asChild>
+            <Link href="/admin/orders">Retour aux commandes</Link>
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <Link href="/admin/orders">
-        <Button variant="ghost" className="mb-4">Retour</Button>
-      </Link>
+      <div className="flex justify-between items-start mb-6">
+        <div>
+          <h1 className="text-3xl font-bold">Commande #{order.id}</h1>
+          <p className="text-muted-foreground">
+            Passée le {new Date(order.created_at).toLocaleDateString("fr-FR")} à{" "}
+            {new Date(order.created_at).toLocaleTimeString("fr-FR")}
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Client: {order.customer_name} ({order.customer_email})
+          </p>
+        </div>
+        <Badge className={statusColors[order.status]}>{statusLabels[order.status]}</Badge>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Commande #{order.id}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <p>Statut: {order.status}</p>
-            <p>Montant: {parseFloat(order.total_amount).toFixed(2)} €</p>
-            <p>Client: {order.customer_name} ({order.customer_email})</p>
-
-            <div>
-              <h4 className="font-medium">Articles</h4>
-              <ul className="list-disc pl-6">
-                {order.items?.map((it: any) => (
-                  <li key={it.id}>{it.product_name} x{it.quantity} — {parseFloat(it.total_price).toFixed(2)} €</li>
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Articles commandés</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {order.items.map((item) => (
+                  <div key={item.id} className="flex items-center space-x-4">
+                    <img
+                      src={item.product_image || "/placeholder.svg"}
+                      alt={item.product_name}
+                      className="w-16 h-16 object-cover rounded"
+                    />
+                    <div className="flex-1">
+                      <h4 className="font-medium">{item.product_name}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {item.unit_price.toFixed(2)} € × {item.quantity}
+                      </p>
+                    </div>
+                    <p className="font-medium">{item.total_price.toFixed(2)} €</p>
+                  </div>
                 ))}
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span>Sous-total</span>
+                    <span>{order.total_amount.toFixed(2)} €</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Livraison</span>
+                    <span>Gratuite</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between font-bold text-lg">
+                    <span>Total</span>
+                    <span>{order.total_amount.toFixed(2)} €</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Adresse de livraison</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>
+                {order.shipping_address.street}
+                <br />
+                {order.shipping_address.postal_code} {order.shipping_address.city}
+                <br />
+                {order.shipping_address.country}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Adresse de facturation</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>
+                {order.billing_address.street}
+                <br />
+                {order.billing_address.postal_code} {order.billing_address.city}
+                <br />
+                {order.billing_address.country}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Mode de paiement</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>{paymentMethodLabels[order.payment_method] || order.payment_method}</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <div className="mt-8 flex gap-4">
+        <Button asChild variant="outline">
+          <Link href="/admin/orders">Retour aux commandes</Link>
+        </Button>
+      </div>
     </div>
   )
 }

@@ -47,8 +47,8 @@ export function Hero() {
           <div className="relative">
             <div className="aspect-square rounded-3xl overflow-hidden bg-gradient-to-br from-primary/10 to-accent/20 p-8">
               <img
-                src="/happy-dog-with-premium-accessories-collar-and-toys.jpg"
-                alt="Chien heureux avec accessoires premium"
+                src="/cat_page-0001.jpg"
+                alt="Chat adorable avec accessoires premium"
                 className="w-full h-full object-cover rounded-2xl"
               />
             </div>
