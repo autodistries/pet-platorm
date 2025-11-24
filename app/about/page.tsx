@@ -27,8 +27,8 @@ export default function AboutPage() {
             </div>
             <div>
               <img
-                src="/happy-dog-with-premium-accessories-collar-and-toys.jpg"
-                alt="Chien heureux avec accessoires"
+                src="/cat_page-0001.jpg"
+                alt="Chat adorable avec accessoires"
                 className="w-full h-64 object-cover rounded-lg"
               />
             </div>
