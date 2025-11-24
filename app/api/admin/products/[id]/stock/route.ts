@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { getCurrentUser } from "@/lib/auth"
 import { getCollection } from "@/lib/db"
 
 interface ProductDocument {
@@ -13,10 +14,16 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { stock_quantity } = await request.json()
+    const session = await getCurrentUser()
+    if (!session || session.role !== "admin") {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 403 })
+    }
+
+    const payload = await request.json()
+    const stock_quantity = Number(payload?.stock_quantity)
     const { id: productId } = params
 
-    if (stock_quantity === undefined || stock_quantity < 0) {
+    if (!Number.isInteger(stock_quantity) || stock_quantity < 0) {
       return NextResponse.json(
         { error: "Quantité de stock invalide" },
         { status: 400 }
@@ -25,13 +32,20 @@ export async function PATCH(
 
     // Mettre à jour le stock
     const productsCol = await getCollection<ProductDocument>("products")
-    const updated = await productsCol.findOneAndUpdate(
+    const updateResult = await productsCol.updateOne(
       { id: productId },
-      { $set: { stock_quantity, updated_at: new Date().toISOString() } },
-      { returnDocument: "after" }
+      { $set: { stock_quantity, updated_at: new Date().toISOString() } }
     )
 
-    if (!updated) {
+    if (updateResult.matchedCount === 0) {
+      return NextResponse.json(
+        { error: "Produit non trouvé" },
+        { status: 404 }
+      )
+    }
+
+    const updatedProduct = await productsCol.findOne({ id: productId })
+    if (!updatedProduct) {
       return NextResponse.json(
         { error: "Produit non trouvé" },
         { status: 404 }
@@ -40,7 +54,7 @@ export async function PATCH(
 
     return NextResponse.json({
       message: "Stock mis à jour avec succès",
-      product: updated,
+      product: updatedProduct,
     })
   } catch (error) {
     console.error("Erreur lors de la mise à jour du stock:", error)

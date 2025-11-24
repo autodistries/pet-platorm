@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,65 +16,120 @@ interface ProductFiltersProps {
   initialFilters?: any
 }
 
-export function ProductFilters({ categories, onFiltersChange, initialFilters = {} }: ProductFiltersProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [filters, setFilters] = useState({
-    search: initialFilters.search || "",
-    category: initialFilters.category || "all",
-    minPrice: parseFloat(initialFilters.minPrice) || 0,
-    maxPrice: parseFloat(initialFilters.maxPrice) || 100,
-    sortBy: initialFilters.sortBy || "created_at",
-    sortOrder: initialFilters.sortOrder || "desc",
-  });
+interface NormalizedFilters {
+  search: string
+  category: string
+  minPrice: number
+  maxPrice: number
+  sortBy: string
+  sortOrder: string
+}
 
-  // Update filters when initialFilters change (URL changes)
-  useEffect(() => {
-    setFilters(prev => ({
-      ...prev,
-      search: initialFilters.search || prev.search,
-      category: initialFilters.category || prev.category,
-      minPrice: parseFloat(initialFilters.minPrice) || prev.minPrice,
-      maxPrice: parseFloat(initialFilters.maxPrice) || prev.maxPrice,
-      sortBy: initialFilters.sortBy || prev.sortBy,
-      sortOrder: initialFilters.sortOrder || prev.sortOrder,
-    }));
-  }, [initialFilters]);
+function normalizeFilters(initial: any = {}): NormalizedFilters {
+  return {
+    search: initial.search || "",
+    category: initial.category || "all",
+    minPrice: Number.isFinite(parseFloat(initial.minPrice)) ? parseFloat(initial.minPrice) : 0,
+    maxPrice: Number.isFinite(parseFloat(initial.maxPrice)) ? parseFloat(initial.maxPrice) : 100,
+    sortBy: initial.sortBy || "created_at",
+    sortOrder: initial.sortOrder || "desc",
+  }
+}
 
-  const [priceRange, setPriceRange] = useState([
-    parseFloat(initialFilters.minPrice) || 0,
-    parseFloat(initialFilters.maxPrice) || 100
-  ]);
-
-  const debouncedFiltersChange = useCallback(
-    (newFilters: any) => {
-      const debounceTimer = setTimeout(() => {
-        onFiltersChange(newFilters)
-      }, 300)
-
-      return () => clearTimeout(debounceTimer)
-    },
-    [onFiltersChange],
+function areFiltersEqual(a: NormalizedFilters, b: NormalizedFilters): boolean {
+  return (
+    a.search === b.search &&
+    a.category === b.category &&
+    a.minPrice === b.minPrice &&
+    a.maxPrice === b.maxPrice &&
+    a.sortBy === b.sortBy &&
+    a.sortOrder === b.sortOrder
   )
+}
+
+export function ProductFilters({ categories, onFiltersChange, initialFilters = {} }: ProductFiltersProps) {
+  const normalizedInitial = normalizeFilters(initialFilters)
+  const [isOpen, setIsOpen] = useState(false)
+  const [filters, setFilters] = useState(() => ({
+    search: normalizedInitial.search,
+    category: normalizedInitial.category,
+    minPrice: normalizedInitial.minPrice,
+    maxPrice: normalizedInitial.maxPrice,
+    sortBy: normalizedInitial.sortBy,
+    sortOrder: normalizedInitial.sortOrder,
+  }))
+
+  const [priceRange, setPriceRange] = useState<[number, number]>(() => [
+    normalizedInitial.minPrice,
+    normalizedInitial.maxPrice,
+  ])
+
+  const skipNextEffect = useRef(false)
+  const isFirstRun = useRef(true)
+  const lastAppliedFilters = useRef<NormalizedFilters>(normalizedInitial)
+
+  // Sync local state when parent updates initial filters (e.g. reset)
+  useEffect(() => {
+    const nextNormalized = normalizeFilters(initialFilters)
+
+    if (!areFiltersEqual(nextNormalized, lastAppliedFilters.current)) {
+      skipNextEffect.current = true
+      lastAppliedFilters.current = nextNormalized
+
+      setFilters({
+        search: nextNormalized.search,
+        category: nextNormalized.category,
+        minPrice: nextNormalized.minPrice,
+        maxPrice: nextNormalized.maxPrice,
+        sortBy: nextNormalized.sortBy,
+        sortOrder: nextNormalized.sortOrder,
+      })
+      setPriceRange([nextNormalized.minPrice, nextNormalized.maxPrice])
+    }
+  }, [
+    initialFilters?.search,
+    initialFilters?.category,
+    initialFilters?.minPrice,
+    initialFilters?.maxPrice,
+    initialFilters?.sortBy,
+    initialFilters?.sortOrder,
+  ])
 
   useEffect(() => {
-    // Skip the initial render to avoid duplicate requests
-    const isInitialFilters = 
-      filters.category === initialFilters.category &&
-      priceRange[0] === (initialFilters.minPrice || 0) &&
-      priceRange[1] === (initialFilters.maxPrice || 100) &&
-      filters.sortBy === initialFilters.sortBy &&
-      filters.sortOrder === initialFilters.sortOrder;
+    if (isFirstRun.current) {
+      isFirstRun.current = false
+      return
+    }
 
-    if (!isInitialFilters) {
-      const cleanup = debouncedFiltersChange({
+    if (skipNextEffect.current) {
+      skipNextEffect.current = false
+      return
+    }
+
+    const currentNormalized: NormalizedFilters = {
+      search: filters.search,
+      category: filters.category,
+      minPrice: priceRange[0],
+      maxPrice: priceRange[1],
+      sortBy: filters.sortBy,
+      sortOrder: filters.sortOrder,
+    }
+
+    if (areFiltersEqual(currentNormalized, lastAppliedFilters.current)) {
+      return
+    }
+
+    const timer = setTimeout(() => {
+      lastAppliedFilters.current = currentNormalized
+      onFiltersChange({
         ...filters,
         minPrice: priceRange[0],
         maxPrice: priceRange[1],
-      });
+      })
+    }, 300)
 
-      return cleanup;
-    }
-  }, [filters, priceRange, debouncedFiltersChange, initialFilters])
+    return () => clearTimeout(timer)
+  }, [filters, priceRange, onFiltersChange])
 
   const handleFilterChange = (key: string, value: any) => {
     setFilters((prev) => ({ ...prev, [key]: value }))
@@ -161,7 +216,7 @@ export function ProductFilters({ categories, onFiltersChange, initialFilters = {
               <div className="px-2">
                 <Slider
                   value={priceRange}
-                  onValueChange={setPriceRange}
+                  onValueChange={(value) => setPriceRange([value[0] ?? 0, value[1] ?? 100])}
                   max={100}
                   min={0}
                   step={5}
