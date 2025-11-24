@@ -12,6 +12,13 @@ export interface User {
   name: string
   email: string
   role?: "customer" | "admin"
+  phone?: string
+  address?: {
+    street: string
+    city: string
+    postal_code: string
+    country: string
+  }
 }
 
 export async function encrypt(payload: any) {
@@ -114,7 +121,28 @@ export async function getCurrentUser(): Promise<User | null> {
   console.log("Session:", session)
   console.log("User from session:", session?.user)
   console.log("User role:", session?.user?.role)
-  return session?.user || null
+  
+  if (!session?.user) return null
+  
+  // Fetch complete user data from database
+  try {
+    const collection = await usersCollection()
+    const userDoc = await collection.findOne({ id: session.user.id })
+    
+    if (!userDoc) return null
+    
+    return {
+      id: userDoc.id,
+      name: userDoc.name,
+      email: userDoc.email,
+      role: userDoc.role,
+      phone: userDoc.phone,
+      address: userDoc.address,
+    }
+  } catch (error) {
+    console.error("Error fetching complete user data:", error)
+    return session?.user || null
+  }
 }
 
 // Mock database functions - replace with actual database queries
@@ -125,6 +153,13 @@ interface UserDocument {
   email: string
   password_hash: string
   role: "customer" | "admin"
+  phone?: string
+  address?: {
+    street: string
+    city: string
+    postal_code: string
+    country: string
+  }
   created_at: string
   updated_at: string
 }

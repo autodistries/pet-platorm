@@ -184,11 +184,34 @@ export default function AccountPage() {
     e.preventDefault()
     setSaving(true)
 
-    // Simulate save
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      const response = await fetch("/api/auth/update", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          name: user?.name,
+          phone: user?.phone,
+          address: user?.address,
+        }),
+      })
 
-    setSaving(false)
-    alert("Informations mises à jour avec succès !")
+      if (response.ok) {
+        const data = await response.json()
+        setUser(data.user)
+        alert("Informations mises à jour avec succès !")
+      } else {
+        const errorData = await response.json()
+        alert(errorData.error || "Erreur lors de la mise à jour")
+      }
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde:", error)
+      alert("Erreur lors de la mise à jour. Veuillez réessayer.")
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (loading) {
