@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createOrder, getUserOrders } from "@/lib/orders"
 import { getCurrentUser } from "@/lib/auth"
-import { query } from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,7 +9,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
 
-  const orders = await getUserOrders(session.id)
+    const orders = await getUserOrders(session.id)
     return NextResponse.json(orders)
   } catch (error) {
     console.error("Erreur lors de la récupération des commandes:", error)
@@ -61,10 +60,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
     
-    if (error.message && error.message.includes("violates foreign key constraint")) {
-      return NextResponse.json({ error: "Utilisateur non trouvé", details: error.message }, { status: 404 })
+    if (error.message && error.message.includes("Utilisateur non trouvé")) {
+      return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 })
     }
-    
+
     return NextResponse.json({ 
       error: "Erreur lors de la création de la commande", 
       details: error.message 

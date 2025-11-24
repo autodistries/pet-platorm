@@ -1,6 +1,21 @@
 import { NextRequest, NextResponse } from "next/server"
-import db from "@/lib/db"
 import { headers } from "next/headers"
+import { randomUUID } from "crypto"
+import { getCollection } from "@/lib/db"
+
+interface NewsletterSubscription {
+  _id: string
+  id: string
+  email: string
+  is_active: boolean
+  subscribed_at: string
+  ip_address: string
+  user_agent: string
+}
+
+async function subscriptionsCollection() {
+  return getCollection<NewsletterSubscription>("newsletter_subscriptions")
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,21 +34,24 @@ export async function POST(request: NextRequest) {
     const ip = headersList.get("x-forwarded-for") || headersList.get("x-real-ip") || "unknown"
     const userAgent = headersList.get("user-agent") || "unknown"
 
-    // Vérifier si l'email existe déjà
-    const existingSubscription = await db.query(
-      "SELECT id, is_active FROM newsletter_subscriptions WHERE email = $1",
-      [email]
-    )
+    const collection = await subscriptionsCollection()
+    const normalizedEmail = email.trim().toLowerCase()
+    const existing = await collection.findOne({ email: normalizedEmail })
 
-    if (existingSubscription.rows.length > 0) {
-      const subscription = existingSubscription.rows[0]
-      
-      // Si l'utilisateur s'était désabonné, le réactiver
-      if (!subscription.is_active) {
-        await db.query(
-          "UPDATE newsletter_subscriptions SET is_active = true, subscribed_at = CURRENT_TIMESTAMP WHERE id = $1",
-          [subscription.id]
+    if (existing) {
+      if (!existing.is_active) {
+        await collection.updateOne(
+          { id: existing.id },
+          {
+            $set: {
+              is_active: true,
+              subscribed_at: new Date().toISOString(),
+              ip_address: ip,
+              user_agent: userAgent,
+            },
+          }
         )
+
         return NextResponse.json(
           { message: "Votre abonnement a été réactivé avec succès" },
           { status: 200 }
@@ -46,12 +64,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Insérer le nouvel abonnement
-    await db.query(
-      `INSERT INTO newsletter_subscriptions (email, ip_address, user_agent) 
-       VALUES ($1, $2, $3)`,
-      [email, ip, userAgent]
-    )
+    const subscriptionId = randomUUID()
+    const subscription: NewsletterSubscription = {
+      _id: subscriptionId,
+      id: subscriptionId,
+      email: normalizedEmail,
+      is_active: true,
+      subscribed_at: new Date().toISOString(),
+      ip_address: ip,
+      user_agent: userAgent,
+    }
+
+    await collection.insertOne(subscription)
 
     return NextResponse.json(
       { message: "Inscription réussie à la newsletter" },
@@ -69,13 +93,13 @@ export async function POST(request: NextRequest) {
 // GET pour récupérer toutes les inscriptions (admin uniquement)
 export async function GET() {
   try {
-    const result = await db.query(
-      `SELECT id, email, subscribed_at, is_active 
-       FROM newsletter_subscriptions 
-       ORDER BY subscribed_at DESC`
-    )
+    const collection = await subscriptionsCollection()
+    const subscriptions = await collection
+      .find({}, { projection: { _id: 0 } })
+      .sort({ subscribed_at: -1 })
+      .toArray()
 
-    return NextResponse.json(result.rows)
+    return NextResponse.json(subscriptions)
   } catch (error) {
     console.error("Erreur lors de la récupération des abonnements:", error)
     return NextResponse.json(

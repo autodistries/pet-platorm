@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from "next/server"
-import db from "@/lib/db"
+import { getCollection } from "@/lib/db"
+
+interface ProductDocument {
+  id: string
+  name: string
+  stock_quantity: number
+  updated_at: string
+}
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-  const { stock_quantity } = await request.json()
-  const { id: productId } = (await params) as { id: string }
+    const { stock_quantity } = await request.json()
+    const { id: productId } = params
 
     if (stock_quantity === undefined || stock_quantity < 0) {
       return NextResponse.json(
@@ -17,15 +24,14 @@ export async function PATCH(
     }
 
     // Mettre à jour le stock
-    const result = await db.query(
-      `UPDATE products 
-       SET stock_quantity = $1, updated_at = CURRENT_TIMESTAMP 
-       WHERE id = $2 
-       RETURNING id, name, stock_quantity`,
-      [stock_quantity, productId]
+    const productsCol = await getCollection<ProductDocument>("products")
+    const updated = await productsCol.findOneAndUpdate(
+      { id: productId },
+      { $set: { stock_quantity, updated_at: new Date().toISOString() } },
+      { returnDocument: "after" }
     )
 
-    if (result.rows.length === 0) {
+    if (!updated) {
       return NextResponse.json(
         { error: "Produit non trouvé" },
         { status: 404 }
@@ -34,7 +40,7 @@ export async function PATCH(
 
     return NextResponse.json({
       message: "Stock mis à jour avec succès",
-      product: result.rows[0],
+      product: updated,
     })
   } catch (error) {
     console.error("Erreur lors de la mise à jour du stock:", error)

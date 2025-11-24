@@ -1,6 +1,22 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
-import { query } from "@/lib/db"
+import { getCollection } from "@/lib/db"
+
+interface CartItemDocument {
+  product_id: string
+  quantity: number
+  added_at: string
+}
+
+interface CartDocument {
+  _id: string
+  customer_id: string
+  items: CartItemDocument[]
+}
+
+async function cartsCollection() {
+  return getCollection<CartDocument>("carts")
+}
 
 // DELETE - Supprimer un item spécifique du panier
 export async function DELETE(
@@ -16,35 +32,34 @@ export async function DELETE(
 
     const productId = params.productId
 
-    console.log("=== REMOVE FROM CART ===");
-    console.log("User ID:", user.id);
-    console.log("Product ID:", productId);
+    const cartsCol = await cartsCollection()
+    const cart = await cartsCol.findOne({ customer_id: user.id })
 
-    // First, get the cart ID for the user
-    const cartResult = await query(
-      "SELECT id FROM carts WHERE customer_id = $1",
-      [user.id]
-    );
-
-    if (cartResult.rows.length === 0) {
-      // No cart found for this user
-      return NextResponse.json({ error: "Pas de panier trouvé" }, { status: 404 });
+    if (!cart) {
+      return NextResponse.json({ error: "Pas de panier trouvé" }, { status: 404 })
     }
 
-    const cartId = cartResult.rows[0].id;
+    const updatedItems = cart.items.filter((item) => item.product_id !== productId)
 
-    // Now delete the item from the cart_items table using cart_id
-    const deleteResult = await query(
-      "DELETE FROM cart_items WHERE cart_id = $1 AND product_id = $2 RETURNING *",
-      [cartId, productId]
-    );
-
-    if (deleteResult.rowCount === 0) {
-      // The item was not found in the cart
-      return NextResponse.json({ error: "Item non trouvé dans le panier" }, { status: 404 });
+    if (updatedItems.length === cart.items.length) {
+      return NextResponse.json({ error: "Item non trouvé dans le panier" }, { status: 404 })
     }
 
-    return NextResponse.json({ message: "Produit retiré du panier", item: deleteResult.rows[0] });
+    if (updatedItems.length === 0) {
+      await cartsCol.deleteOne({ customer_id: user.id })
+    } else {
+      await cartsCol.updateOne(
+        { customer_id: user.id },
+        {
+          $set: {
+            items: updatedItems,
+            updated_at: new Date().toISOString(),
+          },
+        }
+      )
+    }
+
+    return NextResponse.json({ message: "Produit retiré du panier" })
 
 
   } catch (error) {

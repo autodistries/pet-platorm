@@ -1,4 +1,5 @@
-import { query } from "./db"
+import { getCollection } from "./db"
+import type { Document, Filter, SortDirection } from "mongodb"
 
 export interface Product {
   id: string
@@ -34,84 +35,116 @@ export interface ProductFilters {
   limit?: number
 }
 
+interface ProductDocument extends Omit<Product, "category" | "category_id"> {
+  _id: string
+  category_id?: string
+}
+
+interface CategoryDocument extends Category {
+  _id: string
+}
+
+function normalizeSort(sortBy?: ProductFilters["sortBy"], sortOrder?: ProductFilters["sortOrder"]): Record<string, SortDirection> {
+  const direction: SortDirection = sortOrder === "asc" ? 1 : -1
+  switch (sortBy) {
+    case "name":
+      return { name: direction }
+    case "price":
+      return { price: direction }
+    case "created_at":
+    default:
+      return { created_at: direction }
+  }
+}
+
+function mapProduct(doc: ProductDocument & { category?: CategoryDocument | null }): Product {
+  const categoryDoc = doc.category
+    ? {
+        id: doc.category.id,
+        name: doc.category.name,
+        description: doc.category.description,
+        parent_id: doc.category.parent_id,
+        created_at: doc.category.created_at,
+      }
+    : undefined
+
+  return {
+    id: doc.id,
+    name: doc.name,
+    description: doc.description,
+    price: doc.price,
+    category_id: doc.category_id ?? "",
+    stock_quantity: doc.stock_quantity,
+    sku: doc.sku,
+    image_url: doc.image_url,
+    is_active: doc.is_active,
+    created_at: doc.created_at,
+    updated_at: doc.updated_at,
+    category: categoryDoc,
+  }
+}
+
 export async function getProducts(filters: ProductFilters = {}) {
   try {
-    let queryStr = `
-      SELECT p.*, c.name as category_name, c.description as category_description
-      FROM products p
-      LEFT JOIN categories c ON p.category_id = c.id
-      WHERE p.is_active = true
-    `;
-    const queryParams: any[] = [];
-    let paramCount = 1;
+    const collection = await getCollection<ProductDocument>("products")
+    const matchConditions: Document[] = [{ is_active: true }]
 
-    // Apply category filter
     if (filters.category && filters.category !== "all") {
-      queryStr += ` AND p.category_id = $${paramCount}`;
-      queryParams.push(filters.category);
-      paramCount++;
+      matchConditions.push({ category_id: filters.category })
     }
 
-    // Apply search filter
     if (filters.search) {
-      queryStr += ` AND (LOWER(p.name) LIKE $${paramCount} OR LOWER(p.description) LIKE $${paramCount})`;
-      queryParams.push(`%${filters.search.toLowerCase()}%`);
-      paramCount++;
+      const regex = new RegExp(filters.search.trim(), "i")
+      matchConditions.push({ $or: [{ name: regex }, { description: regex }] })
     }
 
-    // Apply price filters
-    if (filters.minPrice !== undefined) {
-      queryStr += ` AND p.price >= $${paramCount}`;
-      queryParams.push(filters.minPrice);
-      paramCount++;
-    }
-    if (filters.maxPrice !== undefined) {
-      queryStr += ` AND p.price <= $${paramCount}`;
-      queryParams.push(filters.maxPrice);
-      paramCount++;
-    }
-
-    // Count total before pagination
-    const countResult = await query(`SELECT COUNT(*) FROM (${queryStr}) as filtered_products`, queryParams);
-    const total = parseInt(countResult.rows[0].count);
-
-    // Apply sorting
-    if (filters.sortBy) {
-      const direction = filters.sortOrder === "desc" ? "DESC" : "ASC";
-      queryStr += ` ORDER BY p.${filters.sortBy} ${direction}`;
-    } else {
-      queryStr += " ORDER BY p.created_at DESC";
+    if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
+      const priceFilter: Document = {}
+      if (filters.minPrice !== undefined) {
+        priceFilter.$gte = filters.minPrice
+      }
+      if (filters.maxPrice !== undefined) {
+        priceFilter.$lte = filters.maxPrice
+      }
+      matchConditions.push({ price: priceFilter })
     }
 
-    // Apply pagination
-    const page = filters.page || 1;
-    const limit = filters.limit || 12;
-    const offset = (page - 1) * limit;
-    queryStr += ` LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
-    queryParams.push(limit, offset);
+    const matchFilter = matchConditions.length > 1 ? { $and: matchConditions } : matchConditions[0]
 
-    const result = await query(queryStr, queryParams);
+    const page = filters.page && filters.page > 0 ? filters.page : 1
+    const limit = filters.limit && filters.limit > 0 ? filters.limit : 12
+    const skip = (page - 1) * limit
 
-    // Transform the results to include category information
-    const products = result.rows.map(row => ({
-      id: row.id,
-      name: row.name,
-      description: row.description,
-      price: parseFloat(row.price),
-      category_id: row.category_id,
-      stock_quantity: row.stock_quantity,
-      sku: row.sku,
-      image_url: row.image_url,
-      is_active: row.is_active,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-      category: row.category_id ? {
-        id: row.category_id,
-        name: row.category_name,
-        description: row.category_description,
-        created_at: row.created_at
-      } : undefined
-    }));
+    const total = await collection.countDocuments(matchFilter as Filter<ProductDocument>)
+
+    const pipeline: Document[] = [
+      { $match: matchFilter },
+      { $sort: normalizeSort(filters.sortBy, filters.sortOrder) },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category_id",
+          foreignField: "id",
+          as: "category_doc",
+        },
+      },
+      {
+        $addFields: {
+          category: { $arrayElemAt: ["$category_doc", 0] },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          category_doc: 0,
+        },
+      },
+    ]
+
+    const docs = await collection.aggregate<(ProductDocument & { category?: CategoryDocument })>(pipeline).toArray()
+    const products = docs.map((doc) => mapProduct(doc))
 
     return {
       products,
@@ -119,66 +152,83 @@ export async function getProducts(filters: ProductFilters = {}) {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
-    };
+    }
   } catch (error) {
-    console.error("Error fetching products:", error);
-    throw new Error("Failed to fetch products");
+    console.error("Error fetching products:", error)
+    throw new Error("Failed to fetch products")
   }
 }
 
 export async function getProductById(id: string): Promise<Product | undefined> {
   try {
-    const result = await query(`
-      SELECT p.*, c.name as category_name, c.description as category_description
-      FROM products p
-      LEFT JOIN categories c ON p.category_id = c.id
-      WHERE p.id = $1 AND p.is_active = true
-    `, [id]);
+    const collection = await getCollection<ProductDocument>("products")
+    const pipeline: Document[] = [
+      { $match: { id, is_active: true } },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category_id",
+          foreignField: "id",
+          as: "category_doc",
+        },
+      },
+      {
+        $addFields: {
+          category: { $arrayElemAt: ["$category_doc", 0] },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          category_doc: 0,
+        },
+      },
+    ]
 
-    if (result.rows.length === 0) {
-      return undefined;
+    const doc = await collection.aggregate<(ProductDocument & { category?: CategoryDocument })>(pipeline).next()
+
+    if (!doc) {
+      return undefined
     }
 
-    const row = result.rows[0];
-    return {
-      id: row.id,
-      name: row.name,
-      description: row.description,
-      price: parseFloat(row.price),
-      category_id: row.category_id,
-      stock_quantity: row.stock_quantity,
-      sku: row.sku,
-      image_url: row.image_url,
-      is_active: row.is_active,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-      category: row.category_id ? {
-        id: row.category_id,
-        name: row.category_name,
-        description: row.category_description,
-        created_at: row.created_at
-      } : undefined
-    };
+    return mapProduct(doc)
   } catch (error) {
-    console.error("Error fetching product:", error);
-    throw new Error("Failed to fetch product");
+    console.error("Error fetching product:", error)
+    throw new Error("Failed to fetch product")
   }
 }
 
 export async function getCategoryById(id: string): Promise<Category | undefined> {
   try {
-    const result = await query(
-      "SELECT * FROM categories WHERE id = $1",
-      [id]
-    );
+    const collection = await getCollection<CategoryDocument>("categories")
+    const category = await collection.findOne({ id })
 
-    if (result.rows.length === 0) {
-      return undefined;
+    if (!category) {
+      return undefined
     }
 
-    return result.rows[0];
+    return {
+      id: category.id,
+      name: category.name,
+      description: category.description,
+      parent_id: category.parent_id,
+      created_at: category.created_at,
+    }
   } catch (error) {
-    console.error("Error fetching category:", error);
-    throw new Error("Failed to fetch category");
+    console.error("Error fetching category:", error)
+    throw new Error("Failed to fetch category")
   }
+}
+
+export async function getCategories(): Promise<Category[]> {
+  const collection = await getCollection<CategoryDocument>("categories")
+  const docs = await collection.find().sort({ name: 1 }).toArray()
+
+  return docs.map((doc) => ({
+    id: doc.id,
+    name: doc.name,
+    description: doc.description,
+    parent_id: doc.parent_id,
+    created_at: doc.created_at,
+  }))
 }

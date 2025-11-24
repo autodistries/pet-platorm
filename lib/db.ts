@@ -1,18 +1,41 @@
-import { Pool } from "pg"
+import { MongoClient, type Db } from "mongodb"
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
-})
+const uri = process.env.MONGODB_URI
+if (!uri) {
+  throw new Error("MONGODB_URI is not defined. Please set it in your environment.")
+}
 
-export async function query(text: string, params?: any[]) {
-  const client = await pool.connect()
-  try {
-    const result = await client.query(text, params)
-    return result
-  } finally {
-    client.release()
+const dbName = process.env.MONGODB_DB_NAME || "pet-platform"
+
+declare global {
+  // eslint-disable-next-line no-var
+  var _mongoClientPromise: Promise<MongoClient> | undefined
+}
+
+let clientPromise: Promise<MongoClient>
+
+if (global._mongoClientPromise) {
+  clientPromise = global._mongoClientPromise
+} else {
+  const client = new MongoClient(uri)
+  clientPromise = client.connect()
+  if (process.env.NODE_ENV !== "production") {
+    global._mongoClientPromise = clientPromise
   }
 }
 
-export default pool
+export async function getMongoClient(): Promise<MongoClient> {
+  return clientPromise
+}
+
+export async function getDb(): Promise<Db> {
+  const client = await getMongoClient()
+  return client.db(dbName)
+}
+
+export async function getCollection<T>(name: string) {
+  const db = await getDb()
+  return db.collection<T>(name)
+}
+
+export default getDb

@@ -176,188 +176,115 @@ docker exec -it pet-platform-db psql -U petadmin -d pet_accessories_db
 
 ### Développement
 
-```bash
-# Lancer le serveur de développement
-pnpm run dev
-
-# Build production
-pnpm run build
-
-# Démarrer en production
-pnpm run start
-```
-
-## 🐛 Dépannage Linux
-
-### Permission refusée pour Docker
-
-**Problème :** `permission denied while trying to connect to the Docker daemon`
-
-**Solution :**
-```bash
-# Ajouter votre utilisateur au groupe docker
-sudo usermod -aG docker $USER
-
-# Appliquer les changements sans redémarrage
-newgrp docker
-
-# Ou redémarrer la session
-# logout puis login
-```
-
-### Docker daemon n'est pas démarré
-
-**Problème :** `Cannot connect to the Docker daemon`
-
-**Solution :**
-```bash
-# Démarrer Docker
-sudo systemctl start docker
-
-# Vérifier le statut
-sudo systemctl status docker
-```
-
-### Port 5432 déjà utilisé
-
-**Problème :** `port is already allocated`
-
-**Solution :**
-```bash
-# Voir ce qui utilise le port 5432
-sudo lsof -i :5432
-
-# Ou avec netstat
-sudo netstat -tulpn | grep 5432
-
-# Arrêter PostgreSQL local s'il tourne
-sudo systemctl stop postgresql
-
-# Ou modifier le port dans docker-compose.yml
-# ports:
-#   - "5433:5432"  # Utiliser 5433 à la place
-```
-
-### pnpm: command not found
-
-**Solution :**
-```bash
-# Installer pnpm globalement
-npm install -g pnpm
-
-# Ou avec curl
-curl -fsSL https://get.pnpm.io/install.sh | sh -
-
-# Recharger le shell
-source ~/.bashrc  # ou ~/.zshrc
-```
-
-### Permission refusée pour start.sh
-
-**Problème :** `Permission denied: ./start.sh`
-
-**Solution :**
-```bash
-# Rendre le script exécutable
-chmod +x start.sh
-
-# Puis relancer
-./start.sh
-```
-
-## 🌐 Alternatives à Docker sur Linux
-
-### Option 1 : PostgreSQL natif (recommandé pour Linux)
-
-#### Ubuntu/Debian
-```bash
-# Installer PostgreSQL
-sudo apt-get install postgresql postgresql-contrib
-
-# Démarrer PostgreSQL
-sudo systemctl start postgresql
-sudo systemctl enable postgresql
-
-# Se connecter
-sudo -u postgres psql
-
-# Dans psql :
 CREATE DATABASE pet_accessories_db;
-CREATE USER petadmin WITH PASSWORD 'petpassword123';
-GRANT ALL PRIVILEGES ON DATABASE pet_accessories_db TO petadmin;
-\q
-
-# Exécuter le script d'initialisation
-psql -U petadmin -d pet_accessories_db -f scripts/init-db.sql
-```
-
-#### Modifier .env.local
-```bash
-DATABASE_URL=postgresql://petadmin:petpassword123@localhost:5432/pet_accessories_db
-```
-
-### Option 2 : Podman (alternative à Docker)
-
-```bash
-# Installer Podman (Ubuntu)
-sudo apt-get install podman podman-compose
-
-# Utiliser les mêmes commandes en remplaçant docker par podman
-podman-compose up -d
-```
-
-## 📁 Permissions des fichiers
-
-Sur Linux, assurez-vous que les permissions sont correctes :
-
-```bash
-# Donner les permissions aux scripts
-chmod +x start.sh
-chmod +x scripts/*.sh  # Si vous avez d'autres scripts
-
-# Vérifier les permissions
-ls -la start.sh
-```
-
-## 🔒 Sécurité Linux
 
 ### Pare-feu
 
-Si vous utilisez `ufw` ou `firewalld` :
-
-```bash
-# Autoriser le port 3000 (Next.js)
 sudo ufw allow 3000/tcp
-
-# Ou avec firewalld
-sudo firewall-cmd --add-port=3000/tcp --permanent
-sudo firewall-cmd --reload
-```
-
-### SELinux (Fedora/RHEL/CentOS)
-
-Si vous avez des problèmes avec SELinux :
-
-```bash
-# Vérifier le statut
-getenforce
-
-# Mode permissif temporaire (pour tester)
-sudo setenforce 0
-
-# Désactiver définitivement (non recommandé en production)
-sudo sed -i 's/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config
-```
-
 ## 🎯 Environnements de développement Linux
+# 🐧 Guide d'installation Linux
 
-### VS Code
+Ce guide couvre la mise en place du projet **Pet Platform** sur les principales distributions Linux, désormais sans dépendance à Docker/PostgreSQL.
+
+## 📋 Prérequis
+
+### Node.js + pnpm
+
+Installez Node.js 18+ et pnpm via la méthode adaptée à votre distribution :
+
+#### Ubuntu / Debian
 ```bash
-# Installer VS Code (Ubuntu)
-sudo snap install code --classic
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+sudo npm install -g pnpm
+```
 
+#### Fedora / RHEL / CentOS
+```bash
+sudo dnf install nodejs npm
+sudo npm install -g pnpm
+```
+
+#### Arch Linux
+```bash
+sudo pacman -S nodejs npm
+sudo npm install -g pnpm
+```
+
+#### Via NVM (recommandé)
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+source ~/.bashrc  # ou ~/.zshrc
+nvm install --lts
+nvm use --lts
+npm install -g pnpm
+```
+
+### MongoDB
+
+Deux possibilités :
+
+1. **MongoDB Atlas (Cloud)** — simple et gratuit. Créez un cluster, autorisez votre IP, récupérez l'URI.
+2. **MongoDB local** — installez le serveur et activez un replica set pour les transactions.
+
+#### Installation rapide de MongoDB Community Edition
+
+##### Ubuntu / Debian
+```bash
+sudo apt-get install -y gnupg curl
+curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | sudo gpg --dearmor -o /usr/share/keyrings/mongodb-server.gpg
+echo "deb [ signed-by=/usr/share/keyrings/mongodb-server.gpg ] https://repo.mongodb.org/apt/ubuntu $(lsb_release -sc)/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+sudo apt-get update
+sudo apt-get install -y mongodb-org
+sudo systemctl enable --now mongod
+```
+
+##### Fedora
+```bash
+sudo tee /etc/yum.repos.d/mongodb-org-7.0.repo <<'EOF'
+[mongodb-org-7.0]
+name=MongoDB Repository
+baseurl=https://repo.mongodb.org/yum/redhat/$releasever/mongodb-org/7.0/x86_64/
+gpgcheck=1
+enabled=1
 # Ou télécharger depuis
+EOF
+sudo dnf install -y mongodb-org
+sudo systemctl enable --now mongod
+```
+
+##### Arch Linux
+```bash
+sudo pacman -S mongodb-bin
+sudo systemctl enable --now mongodb
+```
+
+> 💡 Pour activer les transactions (requises lors de la création de commandes), lancez MongoDB en mode replica set ou utilisez un cluster Atlas.
+
+## 🚀 Installation du projet
+
+```bash
+cd ~/projets  # dossier de votre choix
 # https://code.visualstudio.com/
+cd pet-platorm
+pnpm install
+cp .env.example .env.local
+```
+
+Éditez `.env.local` pour y placer :
+
+```env
+MONGODB_URI=mongodb://localhost:27017/?replicaSet=rs0
+MONGODB_DB_NAME=pet-platform
+JWT_SECRET=change-me-in-production
+```
+
+> Ajustez `MONGODB_URI` si vous utilisez Atlas ou une configuration différente.
+
+## ▶️ Lancer l'application
+
+```bash
+# Développement
 ```
 
 ### Extensions recommandées
@@ -366,12 +293,56 @@ sudo snap install code --classic
 - PostgreSQL (pour gérer la DB)
 - Docker (pour gérer les conteneurs)
 
-## 📊 Différences Windows vs Linux
+# Vérifier la qualité du code
+pnpm run lint
+```
 
-| Fonctionnalité | Windows | Linux |
-|----------------|---------|-------|
-| Script de démarrage | `.\start.ps1` | `./start.sh` |
-| Docker Desktop | Obligatoire | Docker Engine suffit |
+Le front est disponible sur **http://localhost:8080**.
+
+## 🗂️ Gestion de MongoDB en local
+
+```bash
+# Vérifier l'état du service
+
+## 📊 Différences Windows vs Linux
+# Démarrer / arrêter
+sudo systemctl start mongod
+sudo systemctl stop mongod
+
+# Consulter les logs
+sudo journalctl -u mongod
+
+# Ouvrir un shell MongoDB
+mongosh "$MONGODB_URI"
+```
+
+## 🐛 Dépannage Linux
+
+### Connexion refusée à MongoDB
+- Vérifiez que le service `mongod` est démarré
+- Confirmez l'URI (`MONGODB_URI`) et les accès réseau (Atlas)
+- Sur un replica set local :
+
+```bash
+mongosh --eval 'rs.initiate({_id:"rs0", members:[{_id:0, host:"127.0.0.1:27017"}]})'
+```
+
+### Migrations / données manquantes
+- Créez des catégories et produits via `/admin`
+- Importez vos propres données avec `mongoimport`
+
+### Problèmes de droits de fichier
+Si vous avez cloné le repo avec `sudo`, réattribuez les fichiers :
+
+```bash
+sudo chown -R "$USER":"$USER" ~/projets/pet-platorm
+```
+
+## 🔗 Ressources complémentaires
+
+- [Documentation officielle MongoDB](https://www.mongodb.com/docs/)
+- [README du projet](README.md)
+- [Guide base de données](SETUP_DATABASE.md)
 | PostgreSQL natif | Complexe | Simple (apt/dnf/pacman) |
 | Permissions | Automatiques | Nécessite chmod |
 | Performance Docker | Virtualisation | Native (meilleure) |

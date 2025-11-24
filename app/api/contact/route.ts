@@ -1,6 +1,24 @@
 import { NextRequest, NextResponse } from "next/server"
-import db from "@/lib/db"
 import { headers } from "next/headers"
+import { randomUUID } from "crypto"
+import { getCollection } from "@/lib/db"
+
+interface ContactMessage {
+  _id: string
+  id: string
+  name: string
+  email: string
+  subject: string
+  message: string
+  ip_address: string
+  user_agent: string
+  created_at: string
+  is_read: boolean
+}
+
+async function contactCollection() {
+  return getCollection<ContactMessage>("contact_messages")
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,12 +44,20 @@ export async function POST(request: NextRequest) {
     const ip = headersList.get("x-forwarded-for") || headersList.get("x-real-ip") || "unknown"
     const userAgent = headersList.get("user-agent") || "unknown"
 
-    // Insérer le message de contact
-    await db.query(
-      `INSERT INTO contact_messages (name, email, subject, message, ip_address, user_agent) 
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [name, email, subject, message, ip, userAgent]
-    )
+    const collection = await contactCollection()
+    const id = randomUUID()
+    await collection.insertOne({
+      _id: id,
+      id,
+      name,
+      email: email.trim().toLowerCase(),
+      subject,
+      message,
+      ip_address: ip,
+      user_agent: userAgent,
+      created_at: new Date().toISOString(),
+      is_read: false,
+    })
 
     return NextResponse.json(
       { message: "Votre message a été envoyé avec succès" },
@@ -52,20 +78,14 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const unreadOnly = searchParams.get("unread") === "true"
 
-    let query = `
-      SELECT id, name, email, subject, message, created_at, is_read 
-      FROM contact_messages
-    `
+    const collection = await contactCollection()
+    const filter = unreadOnly ? { is_read: false } : {}
+    const messages = await collection
+      .find(filter, { projection: { _id: 0 } })
+      .sort({ created_at: -1 })
+      .toArray()
 
-    if (unreadOnly) {
-      query += " WHERE is_read = false"
-    }
-
-    query += " ORDER BY created_at DESC"
-
-    const result = await db.query(query)
-
-    return NextResponse.json(result.rows)
+    return NextResponse.json(messages)
   } catch (error) {
     console.error("Erreur lors de la récupération des messages:", error)
     return NextResponse.json(
@@ -87,9 +107,10 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
-    await db.query(
-      "UPDATE contact_messages SET is_read = $1 WHERE id = $2",
-      [is_read ?? true, id]
+    const collection = await contactCollection()
+    await collection.updateOne(
+      { id },
+      { $set: { is_read: is_read ?? true } }
     )
 
     return NextResponse.json(

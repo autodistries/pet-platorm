@@ -1,7 +1,8 @@
 import { SignJWT, jwtVerify } from "jose"
 import { cookies } from "next/headers"
 import bcrypt from "bcryptjs"
-import { query } from "./db"
+import { randomUUID } from "crypto"
+import { getCollection } from "./db"
 
 const secretKey = process.env.JWT_SECRET || "your-secret-key"
 const key = new TextEncoder().encode(secretKey)
@@ -52,9 +53,8 @@ export function verifyToken(token: string): { userId: string; email: string } | 
 }
 
 export async function login(email: string, password: string) {
-  // This would typically query your database
-  // For now, we'll simulate a database lookup
-  const user = await getUserByEmail(email)
+  const normalizedEmail = email.trim().toLowerCase()
+  const user = await getUserByEmail(normalizedEmail)
 
   console.log("=== LOGIN DEBUG ===")
   console.log("Email:", email)
@@ -118,15 +118,27 @@ export async function getCurrentUser(): Promise<User | null> {
 }
 
 // Mock database functions - replace with actual database queries
-async function getUserByEmail(email: string) {
+interface UserDocument {
+  _id: string
+  id: string
+  name: string
+  email: string
+  password_hash: string
+  role: "customer" | "admin"
+  created_at: string
+  updated_at: string
+}
+
+async function usersCollection() {
+  return getCollection<UserDocument>("customers")
+}
+
+async function getUserByEmail(email: string): Promise<UserDocument | null> {
   try {
-    const result = await query("SELECT id, name, email, password_hash, role FROM customers WHERE email = $1", [email])
-
-    if (result.rows.length === 0) {
-      return null
-    }
-
-    return result.rows[0]
+    const collection = await usersCollection()
+    const normalizedEmail = email.trim().toLowerCase()
+    const user = await collection.findOne({ email: normalizedEmail })
+    return user
   } catch (error) {
     console.error("Error fetching user by email:", error)
     return null
@@ -135,23 +147,34 @@ async function getUserByEmail(email: string) {
 
 export async function createUser(name: string, email: string, password: string) {
   const passwordHash = await hashPassword(password)
+  const collection = await usersCollection()
+  const normalizedEmail = email.trim().toLowerCase()
+
+  const existing = await collection.findOne({ email: normalizedEmail })
+  if (existing) {
+    throw new Error("duplicate key")
+  }
+
+  const id = randomUUID()
+  const now = new Date().toISOString()
+
+  const user: UserDocument = {
+    _id: id,
+    id,
+    name,
+    email: normalizedEmail,
+    password_hash: passwordHash,
+    role: "customer",
+    created_at: now,
+    updated_at: now,
+  }
 
   try {
-    const result = await query(
-      "INSERT INTO customers (name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role",
-      [name, email, passwordHash, "customer"],
-    )
-
-    console.log("User created in database:", result.rows[0])
-    return result.rows[0]
-  } catch (error: any) {
+    await collection.insertOne(user)
+    console.log("User created in database:", { id: user.id, email: user.email })
+    return { id: user.id, name: user.name, email: user.email, role: user.role }
+  } catch (error) {
     console.error("Error creating user:", error)
-    
-    // Check for duplicate email constraint
-    if (error.code === '23505') { // PostgreSQL unique violation error code
-      throw new Error("duplicate key")
-    }
-    
     throw new Error("Failed to create user")
   }
 }
