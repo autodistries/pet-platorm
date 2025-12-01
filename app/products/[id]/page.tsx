@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Heart, ArrowLeft, Star, Truck, Shield, RotateCcw } from "lucide-react"
+import { ArrowLeft, Star, Truck, Shield, RotateCcw } from "lucide-react"
 import { AddToCartButton } from "@/components/cart/add-to-cart-button"
 import Link from "next/link"
 import type { Product } from "@/lib/products"
@@ -166,9 +166,6 @@ export default function ProductDetailPage() {
 
               <div className="flex gap-3">
                 <AddToCartButton product={product} quantity={quantity} size="lg" className="flex-1" />
-                <Button variant="outline" size="lg">
-                  <Heart className="h-4 w-4" />
-                </Button>
               </div>
             </div>
 

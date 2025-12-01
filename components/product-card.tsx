@@ -2,7 +2,6 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Heart } from "lucide-react"
 import { AddToCartButton } from "@/components/cart/add-to-cart-button"
 import type { Product } from "@/lib/products"
 
@@ -40,15 +39,6 @@ export function ProductCard({ product }: ProductCardProps) {
             Rupture de stock
           </Badge>
         )}
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm opacity-0 transition-opacity group-hover:opacity-100"
-        >
-          <Heart className="h-4 w-4" />
-          <span className="sr-only">Ajouter aux favoris</span>
-        </Button>
       </div>
 
       <CardContent className="p-4">
