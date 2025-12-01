@@ -55,7 +55,7 @@ export function LoginForm({}: LoginFormProps) {
 
       // Success - redirect based on role
       // Keep loading state active to prevent resubmission during redirect
-      const redirectPath = data.user?.role === "admin" ? "/admin" : "/account"
+      const redirectPath = data.user?.role === "admin" ? "/admin" : "/products"
       router.push(redirectPath)
       router.refresh()
       // Don't set loading to false on success - let the redirect happen
