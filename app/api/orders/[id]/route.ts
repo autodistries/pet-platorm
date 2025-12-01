@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getOrderById, updateOrderStatus } from "@/lib/orders"
+import { getOrderById } from "@/lib/orders"
 import { getCurrentUser } from "@/lib/auth"
+import { getCollection } from "@/lib/db"
+import type { Order } from "@/lib/orders"
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -47,23 +49,25 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       if (!existing) return NextResponse.json({ error: "Commande non trouvée" }, { status: 404 })
       if (existing.user_id !== session.id) return NextResponse.json({ error: "Accès refusé" }, { status: 403 })
 
-      // Mettre à jour le payment_method dans la table payments si fourni
-      if (payment_method) {
-        const { query } = await import("@/lib/db")
-        await query(
-          `UPDATE payments SET payment_method = $1, updated_at = CURRENT_TIMESTAMP 
-           WHERE order_id = $2`,
-          [payment_method, id]
-        )
+      // Build update data with only provided fields
+      const updateData: Partial<Order> = {}
+      if (status) updateData.status = status
+      if (payment_method) updateData.payment_method = payment_method
+      updateData.updated_at = new Date().toISOString()
+
+      // Update order in MongoDB
+      const ordersCol = await getCollection("orders")
+      const result = await ordersCol.findOneAndUpdate(
+        { id },
+        { $set: updateData },
+        { returnDocument: "after" }
+      )
+
+      if (!result) {
+        return NextResponse.json({ error: "Commande non trouvée" }, { status: 404 })
       }
 
-      const order = await updateOrderStatus(id, status)
-
-    if (!order) {
-      return NextResponse.json({ error: "Commande non trouvée" }, { status: 404 })
-    }
-
-    return NextResponse.json(order)
+      return NextResponse.json(result)
   } catch (error) {
     console.error("Erreur lors de la mise à jour de la commande:", error)
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
