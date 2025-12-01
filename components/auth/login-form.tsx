@@ -13,11 +13,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import Link from "next/link"
 
-interface LoginFormProps {
-  onSuccess?: () => void
-}
+interface LoginFormProps {}
 
-export function LoginForm({ onSuccess }: LoginFormProps) {
+export function LoginForm({}: LoginFormProps) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -56,17 +54,14 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       authLogin(data.user)
 
       // Success - redirect based on role
-      if (onSuccess) {
-        onSuccess()
-      } else {
-        // Redirect to admin panel if user is admin, otherwise to account page
-        const redirectPath = data.user?.role === "admin" ? "/admin" : "/account"
-        router.push(redirectPath)
-      }
+      // Keep loading state active to prevent resubmission during redirect
+      const redirectPath = data.user?.role === "admin" ? "/admin" : "/account"
+      router.push(redirectPath)
       router.refresh()
+      // Don't set loading to false on success - let the redirect happen
     } catch (error) {
       setError(error instanceof Error ? error.message : "Erreur de connexion")
-    } finally {
+      // Only stop loading on error
       setIsLoading(false)
     }
   }
