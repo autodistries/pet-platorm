@@ -20,6 +20,8 @@ export default function CheckoutPage() {
   const { user, isLoading: authLoading } = useAuth()
   const [loading, setLoading] = useState(false)
   const [sameAsShipping, setSameAsShipping] = useState(true)
+  const [saveAddressToProfile, setSaveAddressToProfile] = useState(false)
+  const [addressPreFilled, setAddressPreFilled] = useState(false)
 
   const [formData, setFormData] = useState<CheckoutData>({
     shipping_address: {
@@ -40,7 +42,7 @@ export default function CheckoutPage() {
 
   // Autofill address from user profile
   useEffect(() => {
-    if (user?.address) {
+    if (user?.address && user.address.street && user.address.city) {
       setFormData((prev) => ({
         ...prev,
         shipping_address: {
@@ -50,6 +52,7 @@ export default function CheckoutPage() {
           country: user.address?.country || "France",
         },
       }))
+      setAddressPreFilled(true)
     }
   }, [user])
 
@@ -68,6 +71,20 @@ export default function CheckoutPage() {
     setLoading(true)
 
     try {
+      // Si l'utilisateur veut sauvegarder l'adresse dans son profil
+      if (saveAddressToProfile && !addressPreFilled) {
+        await fetch("/api/auth/update", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            address: formData.shipping_address,
+          }),
+        })
+      }
+
       const orderData = {
         total_amount: total_amount,
         shipping_address: formData.shipping_address,
@@ -163,6 +180,7 @@ export default function CheckoutPage() {
                     value={formData.shipping_address.street}
                     onChange={(e) => handleInputChange("shipping_address", "street", e.target.value)}
                     required
+                    placeholder="123 Rue de la Paix"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -173,6 +191,7 @@ export default function CheckoutPage() {
                       value={formData.shipping_address.city}
                       onChange={(e) => handleInputChange("shipping_address", "city", e.target.value)}
                       required
+                      placeholder="Paris"
                     />
                   </div>
                   <div>
@@ -182,9 +201,23 @@ export default function CheckoutPage() {
                       value={formData.shipping_address.postal_code}
                       onChange={(e) => handleInputChange("shipping_address", "postal_code", e.target.value)}
                       required
+                      placeholder="75001"
                     />
                   </div>
                 </div>
+                
+                {!addressPreFilled && (
+                  <div className="flex items-center space-x-2 pt-2">
+                    <Checkbox
+                      id="save-address"
+                      checked={saveAddressToProfile}
+                      onCheckedChange={(checked) => setSaveAddressToProfile(checked as boolean)}
+                    />
+                    <Label htmlFor="save-address" className="text-sm cursor-pointer">
+                      Enregistrer cette adresse dans mon profil
+                    </Label>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
