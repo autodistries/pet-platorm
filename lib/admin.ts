@@ -25,15 +25,31 @@ export interface TopProduct {
   revenue: number
 }
 
-interface ProductDocument {
+export interface ProductDocument {
   id: string
   name: string
+  description: string
   price: number
   stock_quantity: number
   category_id?: string
   is_active: boolean
   image_url: string
   created_at: string
+  updated_at?: string
+  sku?: string
+}
+
+export interface AdminProduct {
+  id: string
+  name: string
+  price: number
+  stock_quantity: number
+  category: string
+  status: string
+  created_at: string
+  description?: string
+  category_id?: string
+  image_url?: string
 }
 
 interface CategoryDocument {
@@ -226,7 +242,7 @@ export async function getAllOrders(): Promise<any[]> {
   })
 }
 
-export async function getAllProducts(): Promise<any[]> {
+export async function getAllProducts(): Promise<AdminProduct[]> {
   const [productsCol, categoriesCol] = await Promise.all([productsCollection(), categoriesCollection()])
 
   const categories = await categoriesCol
@@ -249,8 +265,11 @@ export async function getAllProducts(): Promise<any[]> {
       id: product.id,
       name: product.name,
       price: product.price,
-      stock: product.stock_quantity,
+      stock_quantity: product.stock_quantity,
       category: categoryName ?? "Sans catégorie",
+      category_id: product.category_id,
+      description: product.description,
+      image_url: product.image_url,
       status,
       created_at: product.created_at,
     }

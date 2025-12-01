@@ -16,20 +16,13 @@ import {
 } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useToast } from "@/hooks/use-toast"
-import { Package } from "lucide-react"
-
-interface Product {
-  id: string
-  name: string
-  price: number
-  stock: number
-  category: string
-  status: string
-  created_at: string
-}
+import { Package, Edit2 } from "lucide-react"
+import { ProductFormDialog } from "./product-form-dialog"
+import type { AdminProduct as Product } from "@/lib/admin"
 
 interface ProductsTableProps {
   products: Product[]
+  onProductsChanged?: () => void
 }
 
 const statusColors = {
@@ -44,49 +37,17 @@ const statusLabels = {
   out_of_stock: "Rupture de stock",
 }
 
-export default function ProductsTable({ products }: ProductsTableProps) {
+export default function ProductsTable({ products, onProductsChanged }: ProductsTableProps) {
   const [stockDialogOpen, setStockDialogOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [newStock, setNewStock] = useState("")
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
-  const [localProducts, setLocalProducts] = useState(products)
 
   const handleStockClick = (product: Product) => {
     setSelectedProduct(product)
-    setNewStock(product.stock.toString())
+    setNewStock(product.stock_quantity.toString())
     setStockDialogOpen(true)
-  }
-
-  const handleDeleteProduct = async (productId: string) => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer ce produit ?")) {
-      return
-    }
-
-    setLoading(true)
-    try {
-      const response = await fetch(`/api/admin/products/${productId}`, {
-        method: "DELETE",
-      })
-
-      if (!response.ok) {
-        throw new Error("Erreur lors de la suppression")
-      }
-
-      setLocalProducts(prev => prev.filter(p => p.id !== productId))
-      toast({
-        title: "Produit supprimé",
-        description: "Le produit a été supprimé avec succès",
-      })
-    } catch (error: any) {
-      toast({
-        title: "Erreur",
-        description: error.message || "Impossible de supprimer le produit",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
   }
 
   const handleUpdateStock = async () => {
@@ -119,19 +80,6 @@ export default function ProductsTable({ products }: ProductsTableProps) {
         throw new Error(data.error || "Erreur lors de la mise à jour")
       }
 
-      // Mettre à jour localement avec le nouveau statut
-      setLocalProducts(prev =>
-        prev.map(p =>
-          p.id === selectedProduct.id 
-            ? { 
-                ...p, 
-                stock: stockValue,
-                status: stockValue > 0 ? 'active' : 'out_of_stock'
-              } 
-            : p
-        )
-      )
-
       toast({
         title: "Stock mis à jour",
         description: `Le stock de "${selectedProduct.name}" a été mis à jour à ${stockValue} unités`,
@@ -147,6 +95,10 @@ export default function ProductsTable({ products }: ProductsTableProps) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleEditSuccess = () => {
+    onProductsChanged?.()
   }
 
   return (
@@ -168,18 +120,18 @@ export default function ProductsTable({ products }: ProductsTableProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {localProducts.map((product) => (
+              {products.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell>{product.category}</TableCell>
                   <TableCell>{product.price.toFixed(2)} €</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Package className={`h-4 w-4 ${product.stock <= 5 ? "text-red-600" : "text-muted-foreground"}`} />
-                      <span className={product.stock <= 5 ? "text-red-600 font-medium" : ""}>
-                        {product.stock}
+                      <Package className={`h-4 w-4 ${product.stock_quantity <= 5 ? "text-red-600" : "text-muted-foreground"}`} />
+                      <span className={product.stock_quantity <= 5 ? "text-red-600 font-medium" : ""}>
+                        {product.stock_quantity}
                       </span>
-                      {product.stock <= 5 && (
+                      {product.stock_quantity <= 5 && (
                         <Badge variant="destructive" className="ml-2">
                           Stock bas
                         </Badge>
@@ -192,22 +144,16 @@ export default function ProductsTable({ products }: ProductsTableProps) {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex space-x-2">
-                        <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleStockClick(product)}
-                      >
-                        Réapprovisionner
-                      </Button>
-                      <Button 
-                        variant="destructive" 
-                        size="sm"
-                        onClick={() => handleDeleteProduct(product.id)}
-                      >
-                        Supprimer
-                      </Button>
-                    </div>
+                    <ProductFormDialog
+                      product={product}
+                      onSuccess={handleEditSuccess}
+                      trigger={
+                        <Button variant="outline" size="sm">
+                          <Edit2 className="h-4 w-4 mr-2" />
+                          Modifier
+                        </Button>
+                      }
+                    />
                   </TableCell>
                 </TableRow>
               ))}
@@ -229,7 +175,7 @@ export default function ProductsTable({ products }: ProductsTableProps) {
               <Label htmlFor="current-stock">Stock actuel</Label>
               <Input
                 id="current-stock"
-                value={selectedProduct?.stock || 0}
+                value={selectedProduct?.stock_quantity || 0}
                 disabled
                 className="bg-muted"
               />
@@ -259,3 +205,4 @@ export default function ProductsTable({ products }: ProductsTableProps) {
     </>
   )
 }
+

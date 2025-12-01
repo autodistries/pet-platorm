@@ -1,22 +1,8 @@
 import { randomUUID } from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
-import { getAllProducts } from "@/lib/admin"
+import { getAllProducts, type ProductDocument } from "@/lib/admin"
 import { getCurrentUser } from "@/lib/auth"
 import { getCollection } from "@/lib/db"
-
-interface ProductDocument {
-  id: string
-  name: string
-  description: string
-  category_id: string
-  price: number
-  stock_quantity: number
-  image_url: string
-  is_active: boolean
-  sku: string
-  created_at: string
-  updated_at: string
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,8 +26,7 @@ export async function POST(request: NextRequest) {
       !description ||
       !category_id ||
       price === undefined ||
-      stock_quantity === undefined ||
-      !image_url
+      stock_quantity === undefined
     ) {
       return NextResponse.json(
         { error: "Tous les champs requis doivent être remplis" },
@@ -82,7 +67,7 @@ export async function POST(request: NextRequest) {
       category_id,
       price: priceValue,
       stock_quantity: stockValue,
-      image_url,
+      image_url: image_url || "/placeholder.svg",
       is_active: true,
       sku,
       created_at: now,

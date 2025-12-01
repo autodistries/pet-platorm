@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import ProductsTable from "@/components/admin/products-table"
-import { AddProductDialog } from "@/components/admin/add-product-dialog"
+import { ProductFormDialog } from "@/components/admin/product-form-dialog"
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<any[]>([])
@@ -47,9 +47,9 @@ export default function AdminProductsPage() {
       </Link>
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Gestion des produits</h1>
-        <AddProductDialog onProductAdded={fetchProducts} />
+        <ProductFormDialog onSuccess={fetchProducts} />
       </div>
-      <ProductsTable products={products} />
+      <ProductsTable products={products} onProductsChanged={fetchProducts} />
     </div>
   )
 }
