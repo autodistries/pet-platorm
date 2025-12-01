@@ -62,3 +62,4 @@ export function clearCartStorage(): void {
     console.error("Error clearing cart storage:", error)
   }
 }
+

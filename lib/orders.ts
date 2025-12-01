@@ -256,3 +256,52 @@ export async function updateOrderStatus(orderId: string, status: Order["status"]
 
   return updated ? mapOrder(updated) : null
 }
+
+export async function cancelOrderAndRestoreStock(orderId: string): Promise<void> {
+  const client = await getMongoClient()
+  const session = client.startSession()
+
+  try {
+    await session.withTransaction(async () => {
+      const ordersCol = await ordersCollection()
+      const productsCol = await productsCollection()
+
+      // Récupérer la commande
+      const order = await ordersCol.findOne({ id: orderId }, { session })
+      if (!order) {
+        throw new Error("Commande introuvable")
+      }
+
+      if (order.status !== "pending") {
+        throw new Error("Seules les commandes en attente peuvent être annulées")
+      }
+
+      // Restaurer le stock pour chaque produit
+      for (const item of order.items) {
+        await productsCol.updateOne(
+          { id: item.product_id },
+          {
+            $inc: { stock_quantity: item.quantity },
+            $set: { updated_at: new Date().toISOString() },
+          },
+          { session }
+        )
+      }
+
+      // Marquer la commande comme annulée
+      await ordersCol.updateOne(
+        { id: orderId },
+        {
+          $set: {
+            status: "cancelled",
+            updated_at: new Date().toISOString(),
+          },
+        },
+        { session }
+      )
+    })
+  } finally {
+    await session.endSession()
+  }
+}
+
