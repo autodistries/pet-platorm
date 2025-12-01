@@ -34,6 +34,7 @@ export default function PaymentPage() {
   const [success, setSuccess] = useState(false)
   const [savedCards, setSavedCards] = useState<SavedCard[]>([])
   const [selectedCard, setSelectedCard] = useState<string>("")
+  const [cancellingPayment, setCancellingPayment] = useState(false)
   const [cardData, setCardData] = useState({
     number: "",
     expiry: "",
@@ -159,6 +160,37 @@ export default function PaymentPage() {
 
   const handleCardInputChange = (field: string, value: string) => {
     setCardData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleCancelPayment = async () => {
+    if (!order) return
+    
+    const confirmed = confirm(
+      "Voulez-vous annuler ce paiement ? Les produits seront remis dans votre panier."
+    )
+    
+    if (!confirmed) return
+    
+    setCancellingPayment(true)
+    
+    try {
+      const response = await fetch(`/api/orders/${order.id}/cancel-payment`, {
+        method: "POST",
+        credentials: "include",
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Erreur lors de l'annulation")
+      }
+      
+      router.push("/cart?restored=true")
+    } catch (error) {
+      console.error("Erreur lors de l'annulation:", error)
+      alert(error instanceof Error ? error.message : "Erreur lors de l'annulation")
+    } finally {
+      setCancellingPayment(false)
+    }
   }
 
   const isFormValid = () => {
@@ -344,6 +376,22 @@ export default function PaymentPage() {
                 </>
               ) : (
                 `Payer ${order.total_amount.toFixed(2)} €`
+              )}
+            </Button>
+
+            <Button
+              onClick={handleCancelPayment}
+              disabled={cancellingPayment}
+              variant="outline"
+              className="w-full"
+            >
+              {cancellingPayment ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Annulation...
+                </>
+              ) : (
+                "Annuler et remettre dans le panier"
               )}
             </Button>
           </div>
