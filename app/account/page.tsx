@@ -170,6 +170,261 @@ function OrdersTab() {
   )
 }
 
+interface PaymentMethod {
+  id: string
+  card_last4: string
+  card_brand: string
+  card_exp_month: string
+  card_exp_year: string
+  cardholder_name: string
+  is_default: boolean
+}
+
+function PaymentMethodsTab() {
+  const [methods, setMethods] = useState<PaymentMethod[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showAddCard, setShowAddCard] = useState(false)
+  const [cardData, setCardData] = useState({
+    number: "",
+    expiry: "",
+    name: "",
+    isDefault: false,
+  })
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    fetchPaymentMethods()
+  }, [])
+
+  const fetchPaymentMethods = async () => {
+    try {
+      const response = await fetch("/api/payment-methods", { credentials: "include" })
+      if (response.ok) {
+        const data = await response.json()
+        setMethods(data)
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement des moyens de paiement:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAddCard = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+
+    try {
+      // Parse expiry MM/YY
+      const [month, year] = cardData.expiry.split("/")
+
+      const response = await fetch("/api/payment-methods", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          cardNumber: cardData.number,
+          expiryMonth: month,
+          expiryYear: year,
+          cardholderName: cardData.name,
+          isDefault: cardData.isDefault,
+        }),
+      })
+
+      if (response.ok) {
+        await fetchPaymentMethods()
+        setShowAddCard(false)
+        setCardData({ number: "", expiry: "", name: "", isDefault: false })
+        alert("Carte ajoutée avec succès !")
+      } else {
+        const errorData = await response.json()
+        alert(errorData.error || "Erreur lors de l'ajout de la carte")
+      }
+    } catch (error) {
+      console.error("Erreur:", error)
+      alert("Erreur lors de l'ajout de la carte")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDeleteCard = async (id: string) => {
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cette carte ?")) return
+
+    try {
+      const response = await fetch(`/api/payment-methods/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      })
+
+      if (response.ok) {
+        await fetchPaymentMethods()
+      } else {
+        alert("Erreur lors de la suppression")
+      }
+    } catch (error) {
+      console.error("Erreur:", error)
+      alert("Erreur lors de la suppression")
+    }
+  }
+
+  const handleSetDefault = async (id: string) => {
+    try {
+      const response = await fetch(`/api/payment-methods/${id}`, {
+        method: "PATCH",
+        credentials: "include",
+      })
+
+      if (response.ok) {
+        await fetchPaymentMethods()
+      }
+    } catch (error) {
+      console.error("Erreur:", error)
+    }
+  }
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="py-8">
+          <div className="text-center">Chargement...</div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Cartes enregistrées</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {methods.length === 0 ? (
+            <p className="text-muted-foreground mb-4">Aucune carte enregistrée.</p>
+          ) : (
+            <div className="space-y-3">
+              {methods.map((method) => (
+                <div key={method.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-muted p-2 rounded">
+                      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-medium">
+                        {method.card_brand} •••• {method.card_last4}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Expire {method.card_exp_month}/{method.card_exp_year}
+                      </p>
+                      <p className="text-sm text-muted-foreground">{method.cardholder_name}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {method.is_default ? (
+                      <Badge className="bg-green-100 text-green-800">
+                        <Check className="w-3 h-3 mr-1" />
+                        Par défaut
+                      </Badge>
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={() => handleSetDefault(method.id)}>
+                        Définir par défaut
+                      </Button>
+                    )}
+                    <Button variant="destructive" size="sm" onClick={() => handleDeleteCard(method.id)}>
+                      Supprimer
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {!showAddCard ? (
+        <Button onClick={() => setShowAddCard(true)} variant="outline">
+          + Ajouter une carte
+        </Button>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Ajouter une carte</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleAddCard} className="space-y-4">
+              <div>
+                <Label htmlFor="card-number">Numéro de carte</Label>
+                <Input
+                  id="card-number"
+                  placeholder="1234 5678 9012 3456"
+                  value={cardData.number}
+                  onChange={(e) => setCardData((prev) => ({ ...prev, number: e.target.value }))}
+                  maxLength={19}
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="expiry">Date d'expiration</Label>
+                  <Input
+                    id="expiry"
+                    placeholder="MM/YY"
+                    value={cardData.expiry}
+                    onChange={(e) => {
+                      let value = e.target.value.replace(/\D/g, "")
+                      if (value.length >= 2) {
+                        value = value.slice(0, 2) + "/" + value.slice(2, 4)
+                      }
+                      setCardData((prev) => ({ ...prev, expiry: value }))
+                    }}
+                    maxLength={5}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="card-name">Nom sur la carte</Label>
+                  <Input
+                    id="card-name"
+                    placeholder="Jean Dupont"
+                    value={cardData.name}
+                    onChange={(e) => setCardData((prev) => ({ ...prev, name: e.target.value }))}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="is-default"
+                  checked={cardData.isDefault}
+                  onChange={(e) => setCardData((prev) => ({ ...prev, isDefault: e.target.checked }))}
+                  className="rounded"
+                />
+                <Label htmlFor="is-default" className="cursor-pointer">
+                  Définir comme carte par défaut
+                </Label>
+              </div>
+              <div className="flex space-x-2">
+                <Button type="submit" disabled={saving}>
+                  {saving ? "Ajout..." : "Ajouter la carte"}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setShowAddCard(false)}>
+                  Annuler
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )
+}
+
 export default function AccountPage() {
   const router = useRouter()
   const [user, setUser] = useState<AccountUser | null>(null)
@@ -443,17 +698,7 @@ export default function AccountPage() {
         </TabsContent>
 
         <TabsContent value="payment">
-          <Card>
-            <CardHeader>
-              <CardTitle>Moyens de paiement</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">
-                Gérez vos cartes bancaires et moyens de paiement enregistrés.
-              </p>
-              <Button variant="outline">Ajouter une carte</Button>
-            </CardContent>
-          </Card>
+          <PaymentMethodsTab />
         </TabsContent>
 
         <TabsContent value="settings">
