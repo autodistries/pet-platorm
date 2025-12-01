@@ -237,7 +237,6 @@ function PaymentMethodsTab() {
         await fetchPaymentMethods()
         setShowAddCard(false)
         setCardData({ number: "", expiry: "", name: "", isDefault: false })
-        alert("Carte ajoutée avec succès !")
       } else {
         const errorData = await response.json()
         alert(errorData.error || "Erreur lors de l'ajout de la carte")
