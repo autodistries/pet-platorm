@@ -123,9 +123,16 @@ export default function OrdersPage() {
                     <div>
                       <p className="text-lg font-bold">Total: {order.total_amount.toFixed(2)} €</p>
                     </div>
-                    <Button asChild variant="outline">
-                      <Link href={`/orders/${order.id}`}>Voir les détails</Link>
-                    </Button>
+                    <div className="flex gap-2">
+                      {order.status === "pending" && (
+                        <Button asChild>
+                          <Link href={`/payment/${order.id}`}>Continuer le paiement</Link>
+                        </Button>
+                      )}
+                      <Button asChild variant="outline">
+                        <Link href={`/orders/${order.id}`}>Voir les détails</Link>
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>

@@ -206,9 +206,16 @@ export default function OrderDetailPage() {
         <Button asChild variant="outline">
           <Link href="/orders">Retour aux commandes</Link>
         </Button>
-        <Button asChild>
-          <Link href="/products">Continuer vos achats</Link>
-        </Button>
+        {order.status === "pending" && (
+          <Button asChild>
+            <Link href={`/payment/${order.id}`}>Continuer le paiement</Link>
+          </Button>
+        )}
+        {order.status !== "pending" && (
+          <Button asChild>
+            <Link href="/products">Continuer vos achats</Link>
+          </Button>
+        )}
       </div>
     </div>
   )
