@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/contexts/cart-context"
 import { useAuth } from "@/contexts/auth-context"
@@ -37,6 +37,21 @@ export default function CheckoutPage() {
     payment_method: "pending", // Sera défini sur la page de paiement
     same_as_shipping: true,
   })
+
+  // Autofill address from user profile
+  useEffect(() => {
+    if (user?.address) {
+      setFormData((prev) => ({
+        ...prev,
+        shipping_address: {
+          street: user.address?.street || "",
+          city: user.address?.city || "",
+          postal_code: user.address?.postal_code || "",
+          country: user.address?.country || "France",
+        },
+      }))
+    }
+  }, [user])
 
   const handleInputChange = (section: "shipping_address" | "billing_address", field: string, value: string) => {
     setFormData((prev) => ({
