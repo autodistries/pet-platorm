@@ -14,6 +14,16 @@ import type { Order } from "@/lib/orders"
 import { AlertCircle, CheckCircle, CreditCard, Loader2 } from "lucide-react"
 import Link from "next/link"
 
+interface SavedCard {
+  id: string
+  card_last4: string
+  card_brand: string
+  card_exp_month: string
+  card_exp_year: string
+  cardholder_name: string
+  is_default: boolean
+}
+
 export default function PaymentPage() {
   const params = useParams()
   const router = useRouter()
@@ -22,6 +32,8 @@ export default function PaymentPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
+  const [savedCards, setSavedCards] = useState<SavedCard[]>([])
+  const [selectedCard, setSelectedCard] = useState<string>("")
   const [cardData, setCardData] = useState({
     number: "",
     expiry: "",
@@ -33,7 +45,35 @@ export default function PaymentPage() {
     if (params.orderId) {
       fetchOrder(params.orderId as string)
     }
+    fetchSavedCards()
   }, [params.orderId])
+
+  const fetchSavedCards = async () => {
+    try {
+      const response = await fetch("/api/payment-methods", { credentials: "include" })
+      if (response.ok) {
+        const data = await response.json()
+        setSavedCards(data)
+        // Auto-select default card
+        const defaultCard = data.find((card: SavedCard) => card.is_default)
+        if (defaultCard) {
+          setSelectedCard(defaultCard.id)
+          handleCardSelect(defaultCard)
+        }
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement des cartes:", error)
+    }
+  }
+
+  const handleCardSelect = (card: SavedCard) => {
+    setCardData({
+      number: `•••• •••• •••• ${card.card_last4}`,
+      expiry: `${card.card_exp_month}/${card.card_exp_year}`,
+      cvc: "•••",
+      name: card.cardholder_name,
+    })
+  }
 
   const fetchOrder = async (orderId: string) => {
     try {
@@ -208,6 +248,34 @@ export default function PaymentPage() {
                   <CardTitle>Informations de carte</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {savedCards.length > 0 && (
+                    <div>
+                      <Label htmlFor="saved-card">Cartes enregistrées</Label>
+                      <select
+                        id="saved-card"
+                        value={selectedCard}
+                        onChange={(e) => {
+                          const cardId = e.target.value
+                          setSelectedCard(cardId)
+                          if (cardId === "new") {
+                            setCardData({ number: "", expiry: "", cvc: "", name: "" })
+                          } else {
+                            const card = savedCards.find((c) => c.id === cardId)
+                            if (card) handleCardSelect(card)
+                          }
+                        }}
+                        className="w-full p-2 border rounded-md"
+                      >
+                        <option value="new">Nouvelle carte</option>
+                        {savedCards.map((card) => (
+                          <option key={card.id} value={card.id}>
+                            {card.card_brand} •••• {card.card_last4} - {card.cardholder_name}
+                            {card.is_default ? " (Par défaut)" : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <Label htmlFor="card-number">Numéro de carte</Label>
                     <Input
@@ -216,6 +284,7 @@ export default function PaymentPage() {
                       value={cardData.number}
                       onChange={(e) => handleCardInputChange("number", e.target.value)}
                       maxLength={19}
+                      disabled={selectedCard !== "" && selectedCard !== "new"}
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -227,6 +296,7 @@ export default function PaymentPage() {
                         value={cardData.expiry}
                         onChange={(e) => handleCardInputChange("expiry", e.target.value)}
                         maxLength={5}
+                        disabled={selectedCard !== "" && selectedCard !== "new"}
                       />
                     </div>
                     <div>
@@ -247,6 +317,7 @@ export default function PaymentPage() {
                       placeholder="Jean Dupont"
                       value={cardData.name}
                       onChange={(e) => handleCardInputChange("name", e.target.value)}
+                      disabled={selectedCard !== "" && selectedCard !== "new"}
                     />
                   </div>
                 </CardContent>
