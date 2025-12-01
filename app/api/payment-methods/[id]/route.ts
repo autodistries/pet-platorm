@@ -14,17 +14,22 @@ interface PaymentMethod {
   created_at: string
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
     const currentUser = await getCurrentUser()
     if (!currentUser) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
 
+    const { id } = await context.params
+
     const collection = await getCollection<PaymentMethod>("payment_methods")
     
     const result = await collection.deleteOne({
-      id: params.id,
+      id,
       user_id: currentUser.id,
     })
 
@@ -39,12 +44,17 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
     const currentUser = await getCurrentUser()
     if (!currentUser) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
+
+    const { id } = await context.params
 
     const collection = await getCollection<PaymentMethod>("payment_methods")
 
@@ -56,7 +66,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     // Set this card as default
     const result = await collection.updateOne(
-      { id: params.id, user_id: currentUser.id },
+      { id, user_id: currentUser.id },
       { $set: { is_default: true } }
     )
 

@@ -198,6 +198,8 @@ function PaymentMethodsTab() {
     isDefault: false,
   })
   const [saving, setSaving] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     fetchPaymentMethods()
@@ -257,8 +259,14 @@ function PaymentMethodsTab() {
   }
 
   const handleDeleteCard = async (id: string) => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer cette carte ?")) return
+    // If not in confirmation mode, enter it
+    if (deletingId !== id) {
+      setDeletingId(id)
+      return
+    }
 
+    // Already in confirmation mode for this card, proceed with deletion
+    setDeleting(true)
     try {
       const response = await fetch(`/api/payment-methods/${id}`, {
         method: "DELETE",
@@ -267,12 +275,15 @@ function PaymentMethodsTab() {
 
       if (response.ok) {
         await fetchPaymentMethods()
+        setDeletingId(null)
       } else {
         alert("Erreur lors de la suppression")
       }
     } catch (error) {
       console.error("Erreur:", error)
       alert("Erreur lors de la suppression")
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -341,9 +352,24 @@ function PaymentMethodsTab() {
                         Définir par défaut
                       </Button>
                     )}
-                    <Button variant="destructive" size="sm" onClick={() => handleDeleteCard(method.id)}>
-                      Supprimer
+                    <Button
+                      variant={deletingId === method.id ? "destructive" : "outline"}
+                      size="sm"
+                      onClick={() => handleDeleteCard(method.id)}
+                      disabled={deleting && deletingId === method.id}
+                    >
+                      {deletingId === method.id ? "Confirmer suppression" : "Supprimer"}
                     </Button>
+                    {deletingId === method.id && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeletingId(null)}
+                        disabled={deleting}
+                      >
+                        Annuler
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
