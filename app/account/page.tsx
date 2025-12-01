@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import type { Order } from "@/lib/orders"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { Check, AlertCircle } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -174,6 +175,8 @@ export default function AccountPage() {
   const [user, setUser] = useState<AccountUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle")
+  const [saveMessage, setSaveMessage] = useState("")
   const [deleteConfirmation, setDeleteConfirmation] = useState("")
   const [isDeleting, setIsDeleting] = useState(false)
 
@@ -198,6 +201,7 @@ export default function AccountPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
+    setSaveStatus("idle")
 
     try {
       const response = await fetch("/api/auth/update", {
@@ -208,6 +212,7 @@ export default function AccountPage() {
         credentials: "include",
         body: JSON.stringify({
           name: user?.name,
+          email: user?.email,
           phone: user?.phone,
           address: user?.address,
         }),
@@ -216,14 +221,20 @@ export default function AccountPage() {
       if (response.ok) {
         const data = await response.json()
         setUser(data.user)
-        alert("Informations mises à jour avec succès !")
+        setSaveStatus("success")
+        setSaveMessage("Informations mises à jour avec succès !")
+        setTimeout(() => {setSaveStatus("idle");
+          setSaveMessage("")
+        }, 3000)
       } else {
         const errorData = await response.json()
-        alert(errorData.error || "Erreur lors de la mise à jour")
+        setSaveStatus("error")
+        setSaveMessage(errorData.error || "Erreur lors de la mise à jour")
       }
     } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error)
-      alert("Erreur lors de la mise à jour. Veuillez réessayer.")
+      setSaveStatus("error")
+      setSaveMessage("Erreur lors de la mise à jour. Veuillez réessayer.")
     } finally {
       setSaving(false)
     }
@@ -397,9 +408,31 @@ export default function AccountPage() {
                   </div>
                 </div>
 
-                <Button type="submit" disabled={saving}>
-                  {saving ? "Enregistrement..." : "Enregistrer les modifications"}
-                </Button>
+                <div className="flex items-center gap-3">
+                  <Button type="submit" disabled={saving} className={saveStatus === "success" ? "bg-green-600 hover:bg-green-700" : saveStatus === "error" ? "bg-red-600 hover:bg-red-700" : ""}>
+                    <span className="flex items-center gap-2">
+                      {saving && "Enregistrement..."}
+                      {!saving && saveStatus === "idle" && "Enregistrer les modifications"}
+                      {!saving && saveStatus === "success" && (
+                        <>
+                          <Check size={16} />
+                          Enregistré
+                        </>
+                      )}
+                      {!saving && saveStatus === "error" && (
+                        <>
+                          <AlertCircle size={16} />
+                          Erreur
+                        </>
+                      )}
+                    </span>
+                  </Button>
+                  {saveMessage && (
+                    <span className={`text-sm ${saveStatus === "success" ? "text-green-600" : "text-red-600"}`}>
+                      {saveMessage}
+                    </span>
+                  )}
+                </div>
               </form>
             </CardContent>
           </Card>

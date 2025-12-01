@@ -27,7 +27,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
 
-    const { name, phone, address } = await request.json()
+    const { name, email, phone, address } = await request.json()
 
     const collection = await getCollection<UserDocument>("customers")
 
@@ -37,6 +37,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (name) updateData.name = name
+    if (email) updateData.email = email
     if (phone !== undefined) updateData.phone = phone
     if (address) updateData.address = address
 
