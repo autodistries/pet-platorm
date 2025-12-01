@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
     const ordersCollection = await getCollection<Order>("orders")
     const customersCollection = await getCollection<Customer>("customers")
 
-    // Get all orders
-    const orders = await ordersCollection.find({}).toArray()
+    // Get all orders sorted by date (most recent first)
+    const orders = await ordersCollection.find({}).sort({ created_at: -1 }).toArray()
 
     // Enrich orders with customer information
     const enrichedOrders = await Promise.all(

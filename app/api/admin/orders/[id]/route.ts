@@ -1,7 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getOrderById } from "@/lib/orders"
 import { getCurrentUser } from "@/lib/auth"
-import db from "@/lib/db"
+import { getCollection } from "@/lib/db"
+
+interface Customer {
+  id: string
+  name: string
+  email: string
+  [key: string]: unknown
+}
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -14,16 +21,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     if (!order) return NextResponse.json({ error: "Commande non trouvée" }, { status: 404 })
 
-    // Enrichir avec les informations client pour l'admin
-    const customerResult = await db.query(
-      `SELECT name, email FROM customers WHERE id = $1`,
-      [order.user_id]
-    )
+    // Enrich with customer information for admin
+    const customersCollection = await getCollection<Customer>("customers")
+    const customer = await customersCollection.findOne({ id: order.user_id })
 
     const enrichedOrder = {
       ...order,
-      customer_name: customerResult.rows[0]?.name || 'Utilisateur inconnu',
-      customer_email: customerResult.rows[0]?.email || 'N/A',
+      customer_name: customer?.name || "Utilisateur inconnu",
+      customer_email: customer?.email || "N/A",
     }
 
     return NextResponse.json(enrichedOrder)
