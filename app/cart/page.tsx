@@ -1,15 +1,29 @@
 "use client"
 
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft, CheckCircle } from "lucide-react"
 import { useCart } from "@/contexts/cart-context"
 import { formatPrice } from "@/lib/cart"
 import Link from "next/link"
 
 export default function CartPage() {
   const { items, total_items, total_amount, updateQuantity, removeItem, clearCart, isLoading } = useCart()
+  const searchParams = useSearchParams()
+  const [showRestoreNotice, setShowRestoreNotice] = useState(false)
+
+  useEffect(() => {
+    if (searchParams.get("restored") === "true") {
+      setShowRestoreNotice(true)
+      // Masquer la notification après 5 secondes
+      const timer = setTimeout(() => setShowRestoreNotice(false), 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [searchParams])
 
   if (isLoading) {
     return (
@@ -24,6 +38,15 @@ export default function CartPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+        {showRestoreNotice && (
+          <Alert className="mb-6 border-green-200 bg-green-50">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">
+              Paiement annulé. Les produits ont été remis dans votre panier.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="mb-8">
           <Button variant="ghost" size="sm" asChild className="mb-4">
             <Link href="/products">
