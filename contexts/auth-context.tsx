@@ -7,6 +7,7 @@ interface User {
   name: string
   email: string
   role?: "customer" | "admin"
+  address?: {street: string; city: string; postal_code: string; country:string}
 }
 
 interface AuthContextType {
