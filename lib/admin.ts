@@ -116,11 +116,11 @@ export async function getAdminStats(): Promise<AdminStats> {
     totalRevenueAgg,
     revenueTodayAgg,
   ] = await Promise.all([
-    ordersCol.countDocuments(),
+    ordersCol.estimatedDocumentCount(),
     ordersCol.countDocuments({ created_at: { $gte: startOfDayIso } }),
     ordersCol.countDocuments({ status: "pending" }),
-    customersCol.countDocuments(),
-    productsCol.countDocuments(),
+    customersCol.estimatedDocumentCount(),
+    productsCol.estimatedDocumentCount(),
     productsCol.countDocuments({ stock_quantity: { $lte: 5 }, is_active: true }),
     ordersCol
       .aggregate<{ total: number }>([
@@ -222,7 +222,7 @@ export async function getAllOrders(page = 1, limit = 10): Promise<{
   const [ordersCol, customersCol] = await Promise.all([ordersCollection(), customersCollection()])
 
   const skip = (page - 1) * limit
-  const total = await ordersCol.countDocuments()
+  const total = await ordersCol.estimatedDocumentCount()
 
   const customers = await customersCol
     .find({}, { projection: { id: 1, name: 1, email: 1 } })
@@ -270,7 +270,7 @@ export async function getAllProducts(page = 1, limit = 10): Promise<{
   const [productsCol, categoriesCol] = await Promise.all([productsCollection(), categoriesCollection()])
 
   const skip = (page - 1) * limit
-  const total = await productsCol.countDocuments()
+  const total = await productsCol.estimatedDocumentCount()
 
   const categories = await categoriesCol
     .find({}, { projection: { id: 1, name: 1 } })
