@@ -46,7 +46,7 @@ export default function AdminDashboard() {
 
       if (ordersRes.ok) {
         const ordersData = await ordersRes.json()
-        setOrders(ordersData)
+        setOrders(ordersData.orders || [])
       }
 
       // Mock top products data

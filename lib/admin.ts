@@ -212,8 +212,17 @@ export async function getTopProducts(limit = 4): Promise<TopProduct[]> {
   }))
 }
 
-export async function getAllOrders(): Promise<any[]> {
+export async function getAllOrders(page = 1, limit = 10): Promise<{
+  orders: any[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}> {
   const [ordersCol, customersCol] = await Promise.all([ordersCollection(), customersCollection()])
+
+  const skip = (page - 1) * limit
+  const total = await ordersCol.countDocuments()
 
   const customers = await customersCol
     .find({}, { projection: { id: 1, name: 1, email: 1 } })
@@ -225,10 +234,11 @@ export async function getAllOrders(): Promise<any[]> {
   const orders = await ordersCol
     .find()
     .sort({ created_at: -1 })
-    .limit(50)
+    .skip(skip)
+    .limit(limit)
     .toArray()
 
-  return orders.map((order: OrderDocument) => {
+  const formattedOrders = orders.map((order: OrderDocument) => {
     const customer = customerMap.get(order.user_id)
     return {
       id: order.id,
@@ -240,10 +250,27 @@ export async function getAllOrders(): Promise<any[]> {
       items_count: order.items.length,
     }
   })
+
+  return {
+    orders: formattedOrders,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit)
+  }
 }
 
-export async function getAllProducts(): Promise<AdminProduct[]> {
+export async function getAllProducts(page = 1, limit = 10): Promise<{
+  products: AdminProduct[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}> {
   const [productsCol, categoriesCol] = await Promise.all([productsCollection(), categoriesCollection()])
+
+  const skip = (page - 1) * limit
+  const total = await productsCol.countDocuments()
 
   const categories = await categoriesCol
     .find({}, { projection: { id: 1, name: 1 } })
@@ -255,9 +282,11 @@ export async function getAllProducts(): Promise<AdminProduct[]> {
   const products = await productsCol
     .find()
     .sort({ created_at: -1 })
+    .skip(skip)
+    .limit(limit)
     .toArray()
 
-  return products.map((product: ProductDocument) => {
+  const formattedProducts = products.map((product: ProductDocument) => {
     const categoryName = product.category_id ? categoryMap.get(product.category_id) : undefined
     const status = product.stock_quantity === 0 ? "out_of_stock" : product.is_active ? "active" : "inactive"
 
@@ -274,4 +303,12 @@ export async function getAllProducts(): Promise<AdminProduct[]> {
       created_at: product.created_at,
     }
   })
+
+  return {
+    products: formattedProducts,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit)
+  }
 }

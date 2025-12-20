@@ -228,14 +228,27 @@ export async function createOrder(
   return mapOrder(createdOrder)
 }
 
-export async function getUserOrders(userId: string): Promise<Order[]> {
+export async function getUserOrders(userId: string, page = 1, limit = 10): Promise<{ orders: Order[], total: number, page: number, limit: number, totalPages: number }> {
   const ordersCol = await ordersCollection()
-  const docs = await ordersCol
-    .find({ user_id: userId })
-    .sort({ created_at: -1 })
-    .toArray()
+  const skip = (page - 1) * limit
 
-  return docs.map(mapOrder)
+  const [docs, total] = await Promise.all([
+    ordersCol
+      .find({ user_id: userId })
+      .sort({ created_at: -1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray(),
+    ordersCol.countDocuments({ user_id: userId })
+  ])
+
+  return {
+    orders: docs.map(mapOrder),
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit)
+  }
 }
 
 export async function getOrderById(orderId: string): Promise<Order | null> {

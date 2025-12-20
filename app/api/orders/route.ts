@@ -9,8 +9,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
 
-    const orders = await getUserOrders(session.id)
-    return NextResponse.json(orders)
+    const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get("page") || "1")
+    const limit = parseInt(searchParams.get("limit") || "10")
+
+    const result = await getUserOrders(session.id, page, limit)
+    return NextResponse.json(result)
   } catch (error) {
     console.error("Erreur lors de la récupération des commandes:", error)
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })

@@ -97,8 +97,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Accès refusé" }, { status: 403 })
     }
 
-    const products = await getAllProducts()
-    return NextResponse.json(products)
+    const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get("page") || "1")
+    const limit = parseInt(searchParams.get("limit") || "10")
+
+    const result = await getAllProducts(page, limit)
+    return NextResponse.json(result)
   } catch (error) {
     console.error("Erreur lors de la récupération des produits:", error)
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
