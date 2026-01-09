@@ -66,10 +66,10 @@ function OrdersTab() {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch("/api/orders")
+      const response = await fetch("/api/orders?page=1&limit=100")
       if (response.ok) {
         const data = await response.json()
-        setOrders(data)
+        setOrders(data.orders || [])
       }
     } catch (error) {
       console.error("Erreur lors du chargement des commandes:", error)
