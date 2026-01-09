@@ -768,20 +768,20 @@ export default function AccountPage() {
                       <AlertDialogDescription>
                         Cette action est irréversible. Votre compte et toutes vos données seront définitivement
                         supprimés de nos serveurs.
-                        <div className="mt-4">
-                          <Label htmlFor="confirm-delete" className="text-sm font-medium">
-                            Tapez <span className="font-bold text-destructive">supprimer</span> pour confirmer :
-                          </Label>
-                          <Input
-                            id="confirm-delete"
-                            value={deleteConfirmation}
-                            onChange={(e) => setDeleteConfirmation(e.target.value)}
-                            placeholder="supprimer"
-                            className="mt-2"
-                          />
-                        </div>
                       </AlertDialogDescription>
                     </AlertDialogHeader>
+                    <div className="my-4">
+                      <Label htmlFor="confirm-delete" className="text-sm font-medium">
+                        Tapez <span className="font-bold text-destructive">supprimer</span> pour confirmer :
+                      </Label>
+                      <Input
+                        id="confirm-delete"
+                        value={deleteConfirmation}
+                        onChange={(e) => setDeleteConfirmation(e.target.value)}
+                        placeholder="supprimer"
+                        className="mt-2"
+                      />
+                    </div>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Annuler</AlertDialogCancel>
                       <AlertDialogAction
